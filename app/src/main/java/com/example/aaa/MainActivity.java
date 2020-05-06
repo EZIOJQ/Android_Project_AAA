@@ -64,9 +64,8 @@ public class MainActivity extends AppCompatActivity {
         if (!images.isEmpty()){
             images.clear();
         }
-        Log.d("databaseDebug", "initials database");
         String[] columns = {DataBaseHandler.KEY_ID, DataBaseHandler.KEY_IMG_URL, DataBaseHandler.KEY_IMG_NAME};
-        cursor = db.rawQuery("SELECT * FROM data", null);
+        cursor = db.query(DataBaseHandler.TABLE_NAME, columns, null, null, null, null,null);
         while(cursor.moveToNext()){
             int index_id = cursor.getColumnIndex(DataBaseHandler.KEY_ID);
             int index_image = cursor.getColumnIndex(DataBaseHandler.KEY_IMG_URL);
