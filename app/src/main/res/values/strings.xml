@@ -7,4 +7,5 @@
     <string name="menu_setting">Settings</string>
     <string name="todo">TODO</string>
     <string name="placeholder">PlaceHolder</string>
+    <string name="menu_refresh">Refresh</string>
 </resources>

@@ -26,12 +26,11 @@ import java.io.ByteArrayOutputStream;
 public class CameraFragment extends Fragment {
     private static final int CAMERA_REQUEST = 1888;
     private static final int MY_CAMERA_PERMISSION_CODE = 100;
-    String photo;
-    DataBaseHandler databaseHandler;
-    private SQLiteDatabase db;
-    Bitmap theImage;
-    FloatingActionButton take_photo;
-    FloatingActionButton open_lib;
+    private String photo;
+    private String name;
+    private DataBaseHandler databaseHandler;
+    private FloatingActionButton take_photo;
+    private FloatingActionButton open_lib;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
@@ -60,9 +59,10 @@ public class CameraFragment extends Fragment {
         return view;
     }
     private void setDataToDataBase() {
-        db = databaseHandler.getWritableDatabase();
+        SQLiteDatabase db = databaseHandler.getWritableDatabase();
         ContentValues cv = new ContentValues();
-        cv.put(DataBaseHandler.KEY_IMG_URL,photo);
+        cv.put(DataBaseHandler.KEY_IMG_URL, photo);
+        cv.put(DataBaseHandler.KEY_IMG_NAME, name);
 
         long id = db.insert(DataBaseHandler.TABLE_NAME, null, cv);
         if (id < 0) {
@@ -95,11 +95,14 @@ public class CameraFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK)
         {
-            theImage = (Bitmap) data.getExtras().get("data");
+            Bitmap theImage = (Bitmap) data.getExtras().get("data");
             photo=getEncodedString(theImage);
+            name = "PLACEHOLDER";
             setDataToDataBase();
         }
     }
+
+
     private String getEncodedString(Bitmap bitmap){
 
         ByteArrayOutputStream os = new ByteArrayOutputStream();

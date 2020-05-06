@@ -8,10 +8,11 @@ public class DataBaseHandler extends SQLiteOpenHelper {
     public Context context;
     public static final String DATABASE_NAME = "dataManager";
 
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
     public static final String TABLE_NAME = "data";
     public static final String KEY_ID = "id";
     public static final String KEY_IMG_URL = "ImgFavourite";
+    public static final String KEY_IMG_NAME = "ImgName";
 
     public DataBaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -20,7 +21,7 @@ public class DataBaseHandler extends SQLiteOpenHelper {
     }
 
     public static final String CREATE_TABLE = "CREATE TABLE " + TABLE_NAME + "(" + KEY_ID +
-            " INTEGER PRIMARY KEY AUTOINCREMENT," + KEY_IMG_URL + " TEXT" + ")";
+            " INTEGER PRIMARY KEY AUTOINCREMENT," + KEY_IMG_URL + " TEXT," + KEY_IMG_NAME + " TEXT"+ ")";
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS " + TABLE_NAME + "";
 
     @Override
