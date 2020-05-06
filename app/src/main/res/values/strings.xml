@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">AAA</string>
+    <string name="page_title">My app</string>
+    <string name="app_title">MyAPP</string>
+    <string name="options_1">Item</string>
+    <string name="AppName">Page Title</string>
+    <string name="menu_setting">Settings</string>
+    <string name="todo">TODO</string>
+    <string name="placeholder">PlaceHolder</string>
+</resources>
