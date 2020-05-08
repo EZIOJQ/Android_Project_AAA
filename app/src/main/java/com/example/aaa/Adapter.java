@@ -48,7 +48,7 @@ public class Adapter extends ArrayAdapter {
         return v;
     }
 
-    private Bitmap getBitmapFromEncodedString(String encodedString){
+    private  Bitmap getBitmapFromEncodedString(String encodedString){
 
         byte[] arr = Base64.decode(encodedString, Base64.URL_SAFE);
 

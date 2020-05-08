@@ -2,14 +2,17 @@ package com.example.aaa;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,10 +25,13 @@ import androidx.fragment.app.Fragment;
 import com.github.clans.fab.FloatingActionButton;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class CameraFragment extends Fragment {
     private static final int CAMERA_REQUEST = 1888;
     private static final int MY_CAMERA_PERMISSION_CODE = 100;
+    private static final int IMAGE_LOAD_REQUEST = 1999;
+    public static final String IMAGE_TO_SEND = "editableImage";
     private String photo;
     private String name;
     private DataBaseHandler databaseHandler;
@@ -50,12 +56,13 @@ public class CameraFragment extends Fragment {
             }
         });
         //TODO add open lib fragment
-//        open_lib.setOnClickListener(new View.OnClickListener(){
-//            @Override
-//            public void onClick(View v){
-//
-//            }
-//        });
+        open_lib.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+                startActivityForResult(photoPickerIntent, IMAGE_LOAD_REQUEST);
+            }
+        });
         return view;
     }
     private void setDataToDataBase() {
@@ -96,9 +103,16 @@ public class CameraFragment extends Fragment {
         if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK)
         {
             Bitmap theImage = (Bitmap) data.getExtras().get("data");
-            photo=getEncodedString(theImage);
+            photo = getEncodedString(theImage);
             name = "PLACEHOLDER";
             setDataToDataBase();
+        }
+        if (requestCode == IMAGE_LOAD_REQUEST && resultCode == Activity.RESULT_OK){
+            Intent editImage = new Intent(this.getContext(), EditImage.class);
+            Uri imageUri = data.getData();
+            Log.d("sendImage", imageUri.toString());
+            editImage.putExtra(IMAGE_TO_SEND,imageUri.toString());
+            startActivity(editImage);
         }
     }
 

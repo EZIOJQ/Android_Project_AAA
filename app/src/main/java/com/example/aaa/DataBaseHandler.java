@@ -8,7 +8,7 @@ public class DataBaseHandler extends SQLiteOpenHelper {
     public Context context;
     public static final String DATABASE_NAME = "dataManager";
 
-    public static final int DATABASE_VERSION = 2;
+    public static final int DATABASE_VERSION = 3;
     public static final String TABLE_NAME = "data";
     public static final String KEY_ID = "id";
     public static final String KEY_IMG_URL = "ImgFavourite";
