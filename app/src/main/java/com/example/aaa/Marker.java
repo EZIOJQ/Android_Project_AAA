@@ -10,6 +10,7 @@ public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
     private float[] position = new float[2];
     private String icon;
 
+
     public Marker(Context context) {
         super(context);
         // TODO Auto-generated constructor stub
@@ -40,5 +41,7 @@ public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
     public String getIcon() {
         return this.icon;
     }
+
+
 
 }

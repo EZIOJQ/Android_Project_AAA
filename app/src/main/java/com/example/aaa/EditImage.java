@@ -108,6 +108,7 @@ public class EditImage extends AppCompatActivity {
                 currentEditMarker.setId(R.id.newMarker);
                 currentEditMarker.setBackgroundResource(R.drawable.pin);
                 rootView.addView(currentEditMarker);
+                SetMarkerPos(R.id.newMarker,x,y);
                 markers.add(currentEditMarker);
             }
             return true;
@@ -149,7 +150,7 @@ public class EditImage extends AppCompatActivity {
         }
     };
 
-    View.OnTouchListener markerListener = new View.OnTouchListener() {
+    Marker.OnTouchListener markerListener = new Marker.OnTouchListener() {
         public boolean onTouch(View v, MotionEvent me){
             if (me.getAction() == MotionEvent.ACTION_DOWN){
                 oldXvalue = me.getX();
@@ -160,9 +161,15 @@ public class EditImage extends AppCompatActivity {
                 v.setX(me.getRawX() - (v.getWidth() / 2));
                 v.setY(me.getRawY() - (v.getHeight()));
                 v.setLayoutParams(params);
+                SetMarkerPos(v.getId(),me.getRawX(),me.getRawY());
             }
             return true;
         }
     };
 
+    public void SetMarkerPos(int Mid,float x, float y) {
+       Marker marker = findViewById(Mid);
+       marker.setPosition(x,y);
+//        Log.d("marker", marker.getPos()[0] + " " +  marker.getPos()[1]);
+    }
 }
