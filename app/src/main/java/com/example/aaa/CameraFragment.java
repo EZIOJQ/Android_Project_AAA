@@ -8,8 +8,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.icu.text.DateFormat;
+import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
@@ -20,12 +24,17 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 import com.github.clans.fab.FloatingActionButton;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Date;
 
 public class CameraFragment extends Fragment {
     private static final int CAMERA_REQUEST = 1888;
@@ -37,6 +46,7 @@ public class CameraFragment extends Fragment {
     private DataBaseHandler databaseHandler;
     private FloatingActionButton take_photo;
     private FloatingActionButton open_lib;
+    private String currentPhotoPath;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
@@ -50,8 +60,7 @@ public class CameraFragment extends Fragment {
                 if (getActivity().checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
                     requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_CAMERA_PERMISSION_CODE);
                 } else {
-                    Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    startActivityForResult(cameraIntent, CAMERA_REQUEST);
+                    dispatchTakePictureIntent();
                 }
             }
         });
@@ -79,6 +88,7 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -87,8 +97,7 @@ public class CameraFragment extends Fragment {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
             {
                 Toast.makeText(getActivity(), "camera permission granted", Toast.LENGTH_LONG).show();
-                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(cameraIntent, CAMERA_REQUEST);
+                dispatchTakePictureIntent();
             }
             else
             {
@@ -97,23 +106,71 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(this.getContext().getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                Log.e("Create file", "dispatchTakePictureIntent: ",ex);
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this.getContext(),
+                        "com.example.android.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, CAMERA_REQUEST);
+            }
+        }
+    }
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        Intent editImage = new Intent(this.getContext(), EditImage.class);
+        Uri imageUri = null;
         if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK)
         {
-            Bitmap theImage = (Bitmap) data.getExtras().get("data");
-            photo = getEncodedString(theImage);
-            name = "PLACEHOLDER";
-            setDataToDataBase();
+            try {
+                imageUri = galleryAddPic();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
         if (requestCode == IMAGE_LOAD_REQUEST && resultCode == Activity.RESULT_OK){
-            Intent editImage = new Intent(this.getContext(), EditImage.class);
-            Uri imageUri = data.getData();
-            Log.d("sendImage", imageUri.toString());
-            editImage.putExtra(IMAGE_TO_SEND,imageUri.toString());
-            startActivity(editImage);
+            imageUri = data.getData();
         }
+        editImage.putExtra(IMAGE_TO_SEND,imageUri.toString());
+        startActivity(editImage);
+    }
+
+    private Uri galleryAddPic() throws FileNotFoundException {
+        File f = new File(currentPhotoPath);
+        MediaStore.Images.Media.insertImage(this.getContext().getContentResolver(), currentPhotoPath, f.getName(),null );
+        Uri contentUri = Uri.fromFile(f);
+        return contentUri;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = this.getContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath();
+        return image;
     }
 
 
