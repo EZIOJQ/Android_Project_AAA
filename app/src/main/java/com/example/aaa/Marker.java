@@ -11,6 +11,7 @@ public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
     private String icon;
     private String recordFile;
 
+
     public Marker(Context context) {
         super(context);
         // TODO Auto-generated constructor stub
@@ -41,5 +42,7 @@ public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
     public String getIcon() {
         return this.icon;
     }
+
+
 
 }
