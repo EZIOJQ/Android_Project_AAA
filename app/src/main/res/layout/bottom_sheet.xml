@@ -3,41 +3,49 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottom_sheet"
     android:layout_width="match_parent"
-    android:layout_height="300dp"
+    android:layout_height="@dimen/bottom_sheet_height"
     android:orientation="vertical"
     app:behavior_hideable = 'false'
-    app:behavior_peekHeight = '90dp'
+    app:behavior_peekHeight = '0dp'
     app:layout_behavior="com.example.aaa.EditBottomSheetBehavior">
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="90dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Back"
-            android:id="@+id/leftBtn"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentRight="true"
-            android:text="Next"
-            android:id="@+id/rightBtn"/>
-    </RelativeLayout>
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/cardview_dark_background">
-        <TextView
-            android:id="@+id/textView"
+        android:background="@color/cardview_dark_background"
+        android:orientation="vertical">
+
+        <com.google.android.material.tabs.TabLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <com.google.android.material.tabs.TabItem
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="Audio"
+                android:layout_gravity="start"/>
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="Text"
+                android:layout_gravity="start"/>
+
+        </com.google.android.material.tabs.TabLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PlaceHolder"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
-    </RelativeLayout>
+            android:gravity="center_horizontal">
+
+            <ImageButton
+                android:id="@+id/record_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:src="@drawable/record_botton_stop"/>
+
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>

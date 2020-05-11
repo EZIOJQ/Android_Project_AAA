@@ -9,6 +9,7 @@ import android.widget.ImageButton;
 public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
     private float[] position = new float[2];
     private String icon;
+    private String recordFile;
 
     public Marker(Context context) {
         super(context);
