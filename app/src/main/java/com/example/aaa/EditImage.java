@@ -232,6 +232,7 @@ public class EditImage extends AppCompatActivity {
             else {
                 //Start Recording
                 if(checkPermissions()) {
+                    Log.i("filePath", "startRecording");
                     startRecording();
                     recordBtn.setImageDrawable(getResources().getDrawable(R.drawable.record_botton_recording));
                     isRecording = true;
@@ -244,14 +245,16 @@ public class EditImage extends AppCompatActivity {
     };
 
     private void stopRecording() {
-//        mediaRecorder.stop();
-//        mediaRecorder.release();
-//        mediaRecorder = null;
+        mediaRecorder.stop();
+        mediaRecorder.release();
+        mediaRecorder = null;
     }
 
     private void startRecording() {
-        String recordPath = this.getExternalFilesDir( "/").getAbsolutePath();
+
+        String recordPath = EditImage.this.getExternalFilesDir( "/").getAbsolutePath();
         recordFile = "filename.3gp";
+        Log.i("filePath", "startRecording " + recordPath);
 
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
