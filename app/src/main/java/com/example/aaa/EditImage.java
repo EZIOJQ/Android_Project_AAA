@@ -438,8 +438,6 @@ public class EditImage extends AppCompatActivity {
 
     private void stopAudio() {
         mediaPlayer.stop();
-        mediaPlayer.release();
-        mediaPlayer = null;
         isPlaying = false;
         Toast.makeText(getApplicationContext(), "Recording Stopped", Toast.LENGTH_LONG).show();
         playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
