@@ -3,14 +3,18 @@ package com.example.aaa;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -18,11 +22,13 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 
+import android.os.Handler;
 import android.text.method.MovementMethod;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -35,6 +41,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,6 +50,7 @@ import org.w3c.dom.Text;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public class EditImage extends AppCompatActivity {
@@ -88,12 +96,16 @@ public class EditImage extends AppCompatActivity {
 
     //
     private Marker currentPlayMarker;
+    private Button deleteMarkerBtn;
 
     private MediaPlayer mediaPlayer = null;
     private boolean isPlaying = false;
     private ImageButton playBtn;
     private File fileToPlay;
     private TextView durationText;
+    private SeekBar playerSeekbar;
+    private Handler seekbarHandler;
+    private Runnable updateSeekbar;
 
 
 
@@ -142,6 +154,28 @@ public class EditImage extends AppCompatActivity {
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
         durationText = findViewById(R.id.media_duration);
+        deleteMarkerBtn = findViewById(R.id.detail_header_delete);
+        deleteMarkerBtn.setOnClickListener(deleteMarkerOnClickListener);
+
+        playerSeekbar = findViewById(R.id.player_seekbar);
+        playerSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                pauseAudio();
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                mediaPlayer.seekTo(progress);
+                resumeAudio();
+            }
+        });
 
 
     }
@@ -171,9 +205,31 @@ public class EditImage extends AppCompatActivity {
                 bottomSheetLayout.getGlobalVisibleRect(outRect);
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
-                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                    rootView.removeView(findViewById(R.id.newMarker));
-                    markers.remove(markers.size()-1);
+                    if(isRecording) {
+                        AlertDialog.Builder alertDialog = new AlertDialog.Builder(EditImage.this);
+                        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                mediaRecorder.stop();
+                                mediaRecorder.release();
+                                mediaRecorder = null;
+                                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                                isRecording = false;
+                                recordBtn.setImageDrawable(getResources().getDrawable(R.drawable.record_botton_stop));
+                                rootView.removeView(findViewById(R.id.newMarker));
+                                markers.remove(markers.size()-1);
+                            }
+                        });
+                        alertDialog.setNegativeButton("Cancel",null);
+                        alertDialog.setTitle("Audio Still Recording");
+                        alertDialog.setMessage("Are you sure, you want to stop the recording?");
+                        alertDialog.create().show();
+                    }
+                    else {
+                        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                        rootView.removeView(findViewById(R.id.newMarker));
+                        markers.remove(markers.size()-1);
+                    }
                 }
 
             }
@@ -184,6 +240,11 @@ public class EditImage extends AppCompatActivity {
 
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    if(isPlaying) {
+                        stopAudio();
+                    }
+                    mediaPlayer.release();
+                    mediaPlayer = null;
                     detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
 
@@ -317,12 +378,6 @@ public class EditImage extends AppCompatActivity {
                 detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 currentPlayMarker = findViewById(v.getId());
                 mediaPlayer = new MediaPlayer();
-                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-                        stopAudio();
-                    }
-                });
                 Log.i("Play_log", "playpath " + currentPlayMarker.getPath());
                 try {
                     mediaPlayer.setDataSource(currentPlayMarker.getPath());
@@ -334,6 +389,19 @@ public class EditImage extends AppCompatActivity {
                                     TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
                     );
                     durationText.setText(time);
+                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mp) {
+                            stopAudio();
+                        }
+                    });
+
+                    //seekbar
+                    playerSeekbar.setMax(duration);
+                    seekbarHandler = new Handler();
+                    updateRunnable();
+                    seekbarHandler.postDelayed(updateSeekbar, 0);
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -343,7 +411,35 @@ public class EditImage extends AppCompatActivity {
         }
     };
 
+    private void updateRunnable() {
+        updateSeekbar = new Runnable() {
+            @Override
+            public void run() {
+                if(mediaPlayer != null) {
+                    playerSeekbar.setProgress(mediaPlayer.getCurrentPosition());
+                    seekbarHandler.postDelayed(this,500);
+                }
+            }
+        };
+    }
 
+
+    View.OnClickListener deleteMarkerOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            Log.i("MarkerDelete", "Markers delete before" + markers.size());
+            rootView.removeView(currentPlayMarker);
+            for(int i = 0; i < markers.size(); i++) {
+                if(markers.get(i).getId() == currentPlayMarker.getId()) {
+                    markers.remove(i);
+                    break;
+                }
+            }
+            Log.i("MarkerDelete", "Markers delete after" + markers.size());
+
+        }
+    };
 
     //For Recording
     View.OnClickListener recordOnClickListener = new View.OnClickListener() {
@@ -389,10 +485,12 @@ public class EditImage extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void startRecording() {
 
         String recordPath = EditImage.this.getExternalFilesDir( "/").getAbsolutePath();
-        recordFile = currentEditMarker.getId() + ".3gp";
+        String timeStamp =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        recordFile = timeStamp + ".3gp";
         Log.i("filePath", "startRecording " + recordPath);
 
         mediaRecorder = new MediaRecorder();
@@ -426,10 +524,10 @@ public class EditImage extends AppCompatActivity {
         public void onClick(View v) {
             Log.i("Play_log", "onClick: " + v.getResources().getResourceName(v.getId()));
             if(isPlaying) {
-                stopAudio();
+                pauseAudio();
             }
             else {
-                playAudio();
+                resumeAudio();
             }
         }
     };
@@ -437,19 +535,52 @@ public class EditImage extends AppCompatActivity {
 
 
     private void stopAudio() {
-        mediaPlayer.stop();
+        mediaPlayer.seekTo(0);
+        mediaPlayer.pause();
         isPlaying = false;
-        Toast.makeText(getApplicationContext(), "Recording Stopped", Toast.LENGTH_LONG).show();
+        seekbarHandler.removeCallbacks(updateSeekbar);
+        Toast.makeText(getApplicationContext(), "Playing Stopped", Toast.LENGTH_LONG).show();
         playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
     }
 
     private void playAudio() {
         mediaPlayer.start();
-        Toast.makeText(getApplicationContext(), "Recording Started Playing", Toast.LENGTH_LONG).show();
+        updateRunnable();
+        seekbarHandler.postDelayed(updateSeekbar, 0);
+        Toast.makeText(getApplicationContext(), "Playing Started", Toast.LENGTH_LONG).show();
         isPlaying = true;
         playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
 
     }
 
+    private void pauseAudio() {
+        mediaPlayer.pause();
+        isPlaying = false;
+        seekbarHandler.removeCallbacks(updateSeekbar);
+        Toast.makeText(getApplicationContext(), "Playing Paused", Toast.LENGTH_LONG).show();
+        playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
+    }
 
+    private void resumeAudio() {
+        mediaPlayer.start();
+        updateRunnable();
+        seekbarHandler.postDelayed(updateSeekbar,0);
+        Toast.makeText(getApplicationContext(), "Playing Continued", Toast.LENGTH_LONG).show();
+        isPlaying = true;
+        playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if(isPlaying) {
+            stopAudio();
+        }
+        if(isRecording) {
+            stopRecording();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
 }
