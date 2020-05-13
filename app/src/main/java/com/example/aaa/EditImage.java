@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
@@ -21,7 +23,9 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 
+import android.text.method.MovementMethod;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -31,8 +35,12 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import org.w3c.dom.Text;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -44,28 +52,48 @@ public class EditImage extends AppCompatActivity {
     ArrayList<Marker> markers = new ArrayList<>();
     private float[] lastTouchDownXY = new float[2];
 
+    //Detecting drag and drop
     private float oldXvalue;
     private float oldYvalue;
+    private boolean isMoving = false;
 
 
-    private BottomSheetBehavior bottomSheetBehavior;
-    private LinearLayout bottomSheetLayout;
-    private View touchOutside;
 
-
+    //Main page button
     private Button leftBtn;
     private Button rightBtn;
 
     private RelativeLayout rootView;
     private Marker currentEditMarker;
 
+
+    //For recording bottom sheet
+    private BottomSheetBehavior bottomSheetBehavior;
+    private LinearLayout bottomSheetLayout;
+    private View touchOutside;
+
     private ImageButton recordBtn;
     private boolean isRecording = false;
     private String recordPermission = Manifest.permission.RECORD_AUDIO;
     private int PERMISSION_CODE = 21;
 
+
     private MediaRecorder mediaRecorder;
     private String recordFile;
+
+    //For detail bottom sheet
+    private BottomSheetBehavior detailBottomSheetBehavior;
+    private ConstraintLayout detailBottomSheetLayout;
+
+    //
+    private Marker currentPlayMarker;
+
+    private MediaPlayer mediaPlayer = null;
+    private boolean isPlaying = false;
+    private ImageButton playBtn;
+    private File fileToPlay;
+    private TextView duration;
+
 
 
 
@@ -85,7 +113,7 @@ public class EditImage extends AppCompatActivity {
 
         rootView = findViewById(R.id.markerList);
 
-        touchOutside = findViewById(R.id.outside_touch);
+//        touchOutside = findViewById(R.id.outside_touch);
 
         leftBtn = findViewById(R.id.leftBtn);
         rightBtn = findViewById(R.id.rightBtn);
@@ -100,12 +128,20 @@ public class EditImage extends AppCompatActivity {
         leftBtn.setOnClickListener(leftBtnOnClickListener);
         rightBtn.setOnClickListener(rightBtnOnClickListener);
 
-        touchOutside.setOnClickListener(outsideOnClickListener);
+//        touchOutside.setOnClickListener(outsideOnClickListener);
 
         recordBtn = findViewById(R.id.record_btn);
         recordBtn.setBackgroundColor(Color.TRANSPARENT);
 
         recordBtn.setOnClickListener(recordOnClickListener);
+
+        //
+        detailBottomSheetLayout = findViewById(R.id.detail_bottom_sheet);
+        detailBottomSheetBehavior = BottomSheetBehavior.from(detailBottomSheetLayout);
+        playBtn = findViewById(R.id.play_button);
+        playBtn.setOnClickListener(playOnClickListener);
+        duration = findViewById(R.id.media_duration);
+
 
     }
 
@@ -125,10 +161,40 @@ public class EditImage extends AppCompatActivity {
         }
     };
 
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event){
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            if (bottomSheetBehavior.getState()==BottomSheetBehavior.STATE_EXPANDED) {
+
+                Rect outRect = new Rect();
+                bottomSheetLayout.getGlobalVisibleRect(outRect);
+
+                if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                    rootView.removeView(findViewById(R.id.newMarker));
+                    markers.remove(markers.size()-1);
+                }
+
+            }
+            if (detailBottomSheetBehavior.getState()==BottomSheetBehavior.STATE_EXPANDED) {
+
+                Rect outRect = new Rect();
+                detailBottomSheetLayout.getGlobalVisibleRect(outRect);
+
+                if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+
+            }
+        }
+
+        return super.dispatchTouchEvent(event);
+    }
+
     View.OnClickListener imageClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED && detailBottomSheetBehavior.getState()==BottomSheetBehavior.STATE_COLLAPSED) {
                 float x = lastTouchDownXY[0];
                 float y = lastTouchDownXY[1];
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -138,13 +204,13 @@ public class EditImage extends AppCompatActivity {
 //                rightBtn.setText("Next");
                 Log.i("editImage", "x: "+x+ " y: "+y);
 
-                View parent = (View) touchOutside.getParent();
-                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-                outsideparams.height = (int)(parent.getHeight() - getResources().getDimension(R.dimen.bottom_sheet_height));
-                outsideparams.width = parent.getWidth();
-                Log.i("outside", "onCreate: "+parent.getHeight()+" "+parent.getWidth());
-                touchOutside.setLayoutParams(outsideparams);
-                touchOutside.setVisibility(View.VISIBLE);
+//                View parent = (View) touchOutside.getParent();
+//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
+//                outsideparams.height = (int)(parent.getHeight() - getResources().getDimension(R.dimen.bottom_sheet_height));
+//                outsideparams.width = parent.getWidth();
+//                Log.i("outside", "onCreate: "+parent.getHeight()+" "+parent.getWidth());
+//                touchOutside.setLayoutParams(outsideparams);
+//                touchOutside.setVisibility(View.VISIBLE);
 
                 currentEditMarker = new Marker(EditImage.this);
                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(100,100);
@@ -175,51 +241,104 @@ public class EditImage extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-                currentEditMarker.setId(markers.size()-1);
-                currentEditMarker.setOnTouchListener(markerListener);
             }
             else {
             }
         }
     };
 
-    View.OnClickListener outsideOnClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                rootView.removeView(findViewById(R.id.newMarker));
-                markers.remove(markers.size()-1);
-                View parent = (View) touchOutside.getParent();
-                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-                outsideparams.height = 0;
-                outsideparams.width = 0;
-                touchOutside.setLayoutParams(outsideparams);
-            }
-            else {
+//    View.OnClickListener outsideOnClickListener = new View.OnClickListener() {
+//        @Override
+//        public void onClick(View v) {
+//            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+//                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+//                rootView.removeView(findViewById(R.id.newMarker));
+//                markers.remove(markers.size()-1);
+//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
+//                outsideparams.height = 0;
+//                outsideparams.width = 0;
+//                touchOutside.setLayoutParams(outsideparams);
+//            }
+//            else if(detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
+//                outsideparams.height = 0;
+//                outsideparams.width = 0;
+//                touchOutside.setLayoutParams(outsideparams);
+//                detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+//                Log.i("editImage", "onClick: back");
+//            }
+//            else {
+//
+//            }
+//        }
+//    };
 
-                Log.i("editImage", "onClick: back");
-            }
-        }
-    };
-
+    //Marker
     //drag and drop
     View.OnTouchListener markerListener = new View.OnTouchListener() {
         public boolean onTouch(View v, MotionEvent me){
             if (me.getAction() == MotionEvent.ACTION_DOWN){
                 oldXvalue = me.getX();
                 oldYvalue = me.getY();
+                isMoving = false;
                 Log.i("editImage", "Action Down " + oldXvalue + "," + oldYvalue);
             }else if (me.getAction() == MotionEvent.ACTION_MOVE  ){
                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(v.getWidth(), v.getHeight());
                 v.setX(me.getRawX() - (v.getWidth() / 2));
                 v.setY(me.getRawY() - (v.getHeight()));
                 v.setLayoutParams(params);
+                isMoving = true;
+            }
+            else if(me.getAction() == MotionEvent.ACTION_UP) {
+                if(!isMoving || (Math.abs(v.getX() - oldXvalue) < 10 && Math.abs(v.getY() - oldYvalue) < 10)) {
+                    v.performClick();
+                    isMoving = false;
+                }
             }
             return true;
         }
     };
 
+    View.OnClickListener markerOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.i("markerclick", "CLick Marker");
+            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED && detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+//                View parent = (View) touchOutside.getParent();
+//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
+//                outsideparams.height = (int)(parent.getHeight() - getResources().getDimension(R.dimen.bottom_sheet_height));
+//                outsideparams.width = parent.getWidth();
+//                Log.i("outside", "onCreate: "+parent.getHeight()+" "+parent.getWidth());
+//                touchOutside.setLayoutParams(outsideparams);
+//                touchOutside.setVisibility(View.VISIBLE);
+                detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                currentPlayMarker = findViewById(v.getId());
+
+                mediaPlayer = new MediaPlayer();
+                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        stopAudio();
+                    }
+                });
+                Log.i("Play_log", "playpath " + currentPlayMarker.getPath());
+                try {
+                    mediaPlayer.setDataSource(currentPlayMarker.getPath());
+                    mediaPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                duration.setText(mediaPlayer.getDuration());
+
+            }
+            else {
+            }
+        }
+    };
+
+
+
+    //For Recording
     View.OnClickListener recordOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -245,15 +364,28 @@ public class EditImage extends AppCompatActivity {
     };
 
     private void stopRecording() {
+        String recordPath = EditImage.this.getExternalFilesDir( "/").getAbsolutePath();
+
         mediaRecorder.stop();
         mediaRecorder.release();
         mediaRecorder = null;
+//        RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
+//        outsideparams.height = 0;
+//        outsideparams.width = 0;
+//        touchOutside.setLayoutParams(outsideparams);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        currentEditMarker.setPath(recordPath + "/" + recordFile);
+        currentEditMarker.setId(View.generateViewId());
+        Log.i("Play_log", "Setpath: " + recordPath + "/" + recordFile);
+        currentEditMarker.setOnTouchListener(markerListener);
+        currentEditMarker.setOnClickListener(markerOnClickListener);
+
     }
 
     private void startRecording() {
 
         String recordPath = EditImage.this.getExternalFilesDir( "/").getAbsolutePath();
-        recordFile = "filename.3gp";
+        recordFile = currentEditMarker.getId() + ".3gp";
         Log.i("filePath", "startRecording " + recordPath);
 
         mediaRecorder = new MediaRecorder();
@@ -264,21 +396,50 @@ public class EditImage extends AppCompatActivity {
 
         try {
             mediaRecorder.prepare();
+            mediaRecorder.start();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.d("recording", "startRecording: "+e);
         }
+
+
 
     }
 
     private boolean checkPermissions() {
-        if(ActivityCompat.checkSelfPermission(this, recordPermission) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, recordPermission) == PackageManager.PERMISSION_GRANTED) {
             return true;
-        }
-        else {
+        } else {
             ActivityCompat.requestPermissions(this, new String[]{recordPermission}, PERMISSION_CODE);
             return false;
         }
+    }
 
+    View.OnClickListener playOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.i("Play_log", "onClick: " + v.getResources().getResourceName(v.getId()));
+            if(isPlaying) {
+                stopAudio();
+            }
+            else {
+                playAudio();
+            }
+        }
+    };
+
+
+
+    private void stopAudio() {
+        mediaPlayer.stop();
+        isPlaying = false;
+        playBtn.setImageDrawable(getResources().getDrawable(R.drawable.media_play_button));
+    }
+
+    private void playAudio() {
+        mediaPlayer.start();
+
+        isPlaying = true;
+        playBtn.setImageDrawable(getResources().getDrawable(R.drawable.media_stop_button));
     }
 
 
