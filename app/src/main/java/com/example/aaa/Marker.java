@@ -2,11 +2,12 @@ package com.example.aaa;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 
-public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
+public class Marker extends androidx.appcompat.widget.AppCompatImageButton implements View.OnClickListener{
     private float[] position = new float[2];
     private String icon;
     private String recordFile;
@@ -14,25 +15,27 @@ public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
 
     public Marker(Context context) {
         super(context);
-        // TODO Auto-generated constructor stub
+        setOnClickListener(this);
     }
 
     public Marker(Context context, AttributeSet attrs) {
         super(context, attrs);
-        // TODO Auto-generated constructor stub
     }
 
     public Marker(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        // TODO Auto-generated constructor stub
     }
 
     public void setPosition(float x, float y) {
-        position = new float[] {x,y};
+        this.position = new float[] {x,y};
     }
 
     public void setIcon(String s) {
-        icon = s;
+        this.icon = s;
+    }
+
+    public void setPath(String s) {
+        this.recordFile = s;
     }
 
     public float[] getPos() {
@@ -41,6 +44,15 @@ public class Marker extends androidx.appcompat.widget.AppCompatImageButton {
 
     public String getIcon() {
         return this.icon;
+    }
+
+    public String getPath() { return this.recordFile; }
+
+
+    @Override
+    public void onClick(View v) {
+        //setChecked(!isChecked());
+        Log.d("CircleButton", "setBackground()");
     }
 
 

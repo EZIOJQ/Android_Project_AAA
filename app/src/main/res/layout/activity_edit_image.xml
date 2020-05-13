@@ -59,6 +59,7 @@
     </RelativeLayout>
 
     <include layout="@layout/bottom_sheet" />
+    <include layout="@layout/detail_sheet" />
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
