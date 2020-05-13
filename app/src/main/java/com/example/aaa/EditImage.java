@@ -43,6 +43,7 @@ import org.w3c.dom.Text;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class EditImage extends AppCompatActivity {
 
@@ -92,7 +93,7 @@ public class EditImage extends AppCompatActivity {
     private boolean isPlaying = false;
     private ImageButton playBtn;
     private File fileToPlay;
-    private TextView duration;
+    private TextView durationText;
 
 
 
@@ -140,7 +141,7 @@ public class EditImage extends AppCompatActivity {
         detailBottomSheetBehavior = BottomSheetBehavior.from(detailBottomSheetLayout);
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
-        duration = findViewById(R.id.media_duration);
+        durationText = findViewById(R.id.media_duration);
 
 
     }
@@ -180,6 +181,7 @@ public class EditImage extends AppCompatActivity {
 
                 Rect outRect = new Rect();
                 detailBottomSheetLayout.getGlobalVisibleRect(outRect);
+
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
                     detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -278,8 +280,8 @@ public class EditImage extends AppCompatActivity {
     View.OnTouchListener markerListener = new View.OnTouchListener() {
         public boolean onTouch(View v, MotionEvent me){
             if (me.getAction() == MotionEvent.ACTION_DOWN){
-                oldXvalue = me.getX();
-                oldYvalue = me.getY();
+                oldXvalue = me.getRawX();
+                oldYvalue = me.getRawY();
                 isMoving = false;
                 Log.i("editImage", "Action Down " + oldXvalue + "," + oldYvalue);
             }else if (me.getAction() == MotionEvent.ACTION_MOVE  ){
@@ -290,7 +292,8 @@ public class EditImage extends AppCompatActivity {
                 isMoving = true;
             }
             else if(me.getAction() == MotionEvent.ACTION_UP) {
-                if(!isMoving || (Math.abs(v.getX() - oldXvalue) < 10 && Math.abs(v.getY() - oldYvalue) < 10)) {
+                Log.i("DragMarker", "onTouch:" + "oldx " + oldXvalue + " oldy "+oldYvalue + " new x " + me.getRawX() + " new y " + me.getRawY());
+                if(!isMoving || (Math.abs(me.getRawX() - oldXvalue) < 30 && Math.abs(me.getRawY() - oldYvalue) < 30)) {
                     v.performClick();
                     isMoving = false;
                 }
@@ -313,7 +316,6 @@ public class EditImage extends AppCompatActivity {
 //                touchOutside.setVisibility(View.VISIBLE);
                 detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 currentPlayMarker = findViewById(v.getId());
-
                 mediaPlayer = new MediaPlayer();
                 mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                     @Override
@@ -325,11 +327,16 @@ public class EditImage extends AppCompatActivity {
                 try {
                     mediaPlayer.setDataSource(currentPlayMarker.getPath());
                     mediaPlayer.prepare();
+                    int duration = mediaPlayer.getDuration();
+                    @SuppressLint("DefaultLocale") String time = String.format("%02d min, %02d sec",
+                            TimeUnit.MILLISECONDS.toMinutes(duration),
+                            TimeUnit.MILLISECONDS.toSeconds(duration) -
+                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
+                    );
+                    durationText.setText(time);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                duration.setText(mediaPlayer.getDuration());
-
             }
             else {
             }
@@ -431,15 +438,19 @@ public class EditImage extends AppCompatActivity {
 
     private void stopAudio() {
         mediaPlayer.stop();
+        mediaPlayer.release();
+        mediaPlayer = null;
         isPlaying = false;
-        playBtn.setImageDrawable(getResources().getDrawable(R.drawable.media_play_button));
+        Toast.makeText(getApplicationContext(), "Recording Stopped", Toast.LENGTH_LONG).show();
+        playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
     }
 
     private void playAudio() {
         mediaPlayer.start();
-
+        Toast.makeText(getApplicationContext(), "Recording Started Playing", Toast.LENGTH_LONG).show();
         isPlaying = true;
-        playBtn.setImageDrawable(getResources().getDrawable(R.drawable.media_stop_button));
+        playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
+
     }
 
 
