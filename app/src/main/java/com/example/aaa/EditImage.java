@@ -4,12 +4,17 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -107,6 +112,13 @@ public class EditImage extends AppCompatActivity {
     private Handler seekbarHandler;
     private Runnable updateSeekbar;
 
+    //For Upload
+    private Dialog uploadDialog;
+    private View uploadView;
+    private ConstraintLayout shareLink;
+    private TextView shareLinkText;
+    private Button copyButton;
+
 
 
 
@@ -176,6 +188,11 @@ public class EditImage extends AppCompatActivity {
                 resumeAudio();
             }
         });
+
+
+        //
+        uploadDialog = new Dialog(this);
+
 
 
     }
@@ -303,38 +320,29 @@ public class EditImage extends AppCompatActivity {
     View.OnClickListener rightBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
-            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED && detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                TextView textClose;
+                uploadDialog.setContentView(R.layout.upload_popup);
+                textClose = uploadDialog.findViewById(R.id.close_upload_dialog);
+                textClose.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        uploadDialog.dismiss();
+                    }
+                });
+                uploadDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                uploadDialog.setCancelable(false);
+                uploadDialog.show();
+                uploadView = uploadDialog.findViewById(R.id.upload_progress_button);
+                shareLink = uploadDialog.findViewById(R.id.share_link);
+                shareLinkText = uploadDialog.findViewById(R.id.share_link_text);
+                copyButton = uploadDialog.findViewById(R.id.copy_button);
+                uploadView.setOnClickListener(uploadBtnOnClickListener);
             }
             else {
             }
         }
     };
-
-//    View.OnClickListener outsideOnClickListener = new View.OnClickListener() {
-//        @Override
-//        public void onClick(View v) {
-//            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-//                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-//                rootView.removeView(findViewById(R.id.newMarker));
-//                markers.remove(markers.size()-1);
-//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-//                outsideparams.height = 0;
-//                outsideparams.width = 0;
-//                touchOutside.setLayoutParams(outsideparams);
-//            }
-//            else if(detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-//                outsideparams.height = 0;
-//                outsideparams.width = 0;
-//                touchOutside.setLayoutParams(outsideparams);
-//                detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-//                Log.i("editImage", "onClick: back");
-//            }
-//            else {
-//
-//            }
-//        }
-//    };
 
     //Marker
     //drag and drop
@@ -583,4 +591,37 @@ public class EditImage extends AppCompatActivity {
             mediaPlayer = null;
         }
     }
+
+    View.OnClickListener uploadBtnOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final ProgressButton progressButton = new ProgressButton(EditImage.this,v);
+
+            progressButton.buttonActivated();
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    progressButton.buttonFinished();
+                    shareLink.setVisibility(View.VISIBLE);
+                    shareLinkText.setText("Copy the code &Lbu73Cd9s& and open Picca to view Image 01");
+                    copyButton.setOnClickListener(copyBtnOnClickListener);
+                }
+            }, 3000);
+        }
+    };
+
+    View.OnClickListener copyBtnOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            ClipboardManager clipboard = (ClipboardManager)
+                    getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("ShareLink",shareLinkText.getText());
+            if(clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(EditImage.this, "Share link copied to clipboard ", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
 }
