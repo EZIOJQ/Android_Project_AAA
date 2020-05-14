@@ -3,6 +3,7 @@ package com.example.aaa;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -38,12 +39,25 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class EditImage extends AppCompatActivity {
 
@@ -96,6 +110,11 @@ public class EditImage extends AppCompatActivity {
     private TextView durationText;
 
 
+    //Network related
+    private Uri imageUri;
+    private FileUploadService fileUploadService;
+    Context curr_context;
+
 
 
 
@@ -110,7 +129,10 @@ public class EditImage extends AppCompatActivity {
         setContentView(R.layout.activity_edit_image);
         ImageView image_for_edit = findViewById(R.id.edit_image);
         cur_image = getIntent().getStringExtra(CameraFragment.IMAGE_TO_SEND);
+        imageUri = Uri.parse(cur_image);
         image_for_edit.setImageURI(Uri.parse(cur_image));
+        curr_context = this;
+
 
         rootView = findViewById(R.id.markerList);
 
@@ -201,19 +223,6 @@ public class EditImage extends AppCompatActivity {
                 float y = lastTouchDownXY[1];
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
 
-
-//                leftBtn.setText("Close");
-//                rightBtn.setText("Next");
-                Log.i("editImage", "x: "+x+ " y: "+y);
-
-//                View parent = (View) touchOutside.getParent();
-//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-//                outsideparams.height = (int)(parent.getHeight() - getResources().getDimension(R.dimen.bottom_sheet_height));
-//                outsideparams.width = parent.getWidth();
-//                Log.i("outside", "onCreate: "+parent.getHeight()+" "+parent.getWidth());
-//                touchOutside.setLayoutParams(outsideparams);
-//                touchOutside.setVisibility(View.VISIBLE);
-
                 currentEditMarker = new Marker(EditImage.this);
                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(100,100);
                 currentEditMarker.setLayoutParams(params);
@@ -232,20 +241,53 @@ public class EditImage extends AppCompatActivity {
     View.OnClickListener leftBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
-            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-            }
-            else {
-            }
         }
     };
 
     View.OnClickListener rightBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
-            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+            ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
+            List<HashMap<String, Float>> markerMap = new ArrayList<>();
+            for (int i = 0; i < markers.size(); ++i){
+                Marker marker = markers.get(i);
+                File audioFile = new File(marker.getPath());
+                Uri audioFileUri = Uri.fromFile(audioFile);
+                HashMap<String, Float> markerHash = new HashMap<>();
+                markerHash.put("pos_x", marker.getPos()[0]);
+                markerHash.put("pos_y]", marker.getPos()[1]);
+                markerMap.add(markerHash);
+                audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri,audioFile));
             }
-            else {
+            List<JSONObject> jsonObj = new ArrayList<>();
+            for(HashMap<String, Float> marker : markerMap) {
+                JSONObject obj = new JSONObject(marker);
+                jsonObj.add(obj);
             }
+            JSONArray markerJsonObj = new JSONArray(jsonObj);
+            String markerJsonString = markerJsonObj.toString();
+
+            String shareLinkString = UUID.randomUUID().toString();
+            RequestBody shareLink = FileUploadMethods.createPartFromString(shareLinkString);
+            RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
+
+
+            MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
+
+
+            fileUploadService = ServiceGenerator.createService(FileUploadService.class);
+            Call<ResponseBody> call = fileUploadService.uploadFiles(imageFile, audioFiles, markersJSON, shareLink);
+            call.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    Toast.makeText(curr_context, "success!" + response, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    Toast.makeText(curr_context, "success!" + t, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     };
 
@@ -289,6 +331,8 @@ public class EditImage extends AppCompatActivity {
                 v.setX(me.getRawX() - (v.getWidth() / 2));
                 v.setY(me.getRawY() - (v.getHeight()));
                 v.setLayoutParams(params);
+                currentPlayMarker = findViewById(v.getId());
+                currentPlayMarker.setPosition(me.getRawX(),me.getRawY());
                 isMoving = true;
             }
             else if(me.getAction() == MotionEvent.ACTION_UP) {
