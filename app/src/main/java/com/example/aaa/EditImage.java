@@ -56,6 +56,12 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
+import retrofit2.Response;
+
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
@@ -247,8 +253,11 @@ public class EditImage extends AppCompatActivity {
     View.OnClickListener rightBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
+            Log.d("networkDebug", "onClick Success!");
             ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
             List<HashMap<String, Float>> markerMap = new ArrayList<>();
+
+
             for (int i = 0; i < markers.size(); ++i){
                 Marker marker = markers.get(i);
                 File audioFile = new File(marker.getPath());
@@ -257,20 +266,27 @@ public class EditImage extends AppCompatActivity {
                 markerHash.put("pos_x", marker.getPos()[0]);
                 markerHash.put("pos_y]", marker.getPos()[1]);
                 markerMap.add(markerHash);
-                audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri,audioFile));
+                Log.d("networkDebug", "maphash create success!");
+                Log.d("networkDebug", String.valueOf(audioFileUri));
+                audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri, audioFile));
             }
             List<JSONObject> jsonObj = new ArrayList<>();
             for(HashMap<String, Float> marker : markerMap) {
                 JSONObject obj = new JSONObject(marker);
                 jsonObj.add(obj);
             }
+
+            Log.d("networkDebug", "map create success!");
+
+
             JSONArray markerJsonObj = new JSONArray(jsonObj);
             String markerJsonString = markerJsonObj.toString();
+            Log.d("networkDebug", markerJsonString);
 
             String shareLinkString = UUID.randomUUID().toString();
             RequestBody shareLink = FileUploadMethods.createPartFromString(shareLinkString);
             RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
-
+            Log.d("networkDebug", "file create success!");
 
             MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
 
