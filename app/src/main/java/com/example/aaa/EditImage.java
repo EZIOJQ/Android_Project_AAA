@@ -133,7 +133,6 @@ public class EditImage extends AppCompatActivity {
 
         recordBtn = findViewById(R.id.record_btn);
         recordBtn.setBackgroundColor(Color.TRANSPARENT);
-
         recordBtn.setOnClickListener(recordOnClickListener);
 
         //
