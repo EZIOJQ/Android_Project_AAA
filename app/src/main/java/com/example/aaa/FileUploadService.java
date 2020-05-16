@@ -18,7 +18,6 @@ public interface FileUploadService {
     Call<ResponseBody> uploadFiles(
             @Part MultipartBody.Part imageFile,
             @Part ArrayList<MultipartBody.Part> audioFiles,
-            @Part ("markers") RequestBody markers,
-            @Part ("shareLink") RequestBody shareLink
+            @Part ("markers") RequestBody markers
             );
 }

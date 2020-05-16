@@ -50,6 +50,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
@@ -134,7 +135,7 @@ public class EditImage extends AppCompatActivity {
     //For Upload
     private Dialog uploadDialog;
     private View uploadView;
-    private ConstraintLayout shareLink;
+    private ConstraintLayout shareLinkLayout;
     private TextView shareLinkText;
     private Button copyButton;
 
@@ -361,7 +362,7 @@ public class EditImage extends AppCompatActivity {
                 uploadDialog.setCancelable(false);
                 uploadDialog.show();
                 uploadView = uploadDialog.findViewById(R.id.upload_progress_button);
-                shareLink = uploadDialog.findViewById(R.id.share_link);
+                shareLinkLayout = uploadDialog.findViewById(R.id.share_link);
                 shareLinkText = uploadDialog.findViewById(R.id.share_link_text);
                 copyButton = uploadDialog.findViewById(R.id.copy_button);
                 uploadView.setOnClickListener(uploadBtnOnClickListener);
@@ -371,65 +372,7 @@ public class EditImage extends AppCompatActivity {
         }
     };
 
-//    ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
-//    List<HashMap<String, Float>> markerMap = new ArrayList<>();
-//
-//
-//            for (int i = 0; i < markers.size(); ++i){
-//        Marker marker = markers.get(i);
-//        File audioFile = new File(marker.getPath());
-//        Uri audioFileUri = Uri.fromFile(audioFile);
-//        HashMap<String, Float> markerHash = new HashMap<>();
-//        markerHash.put("pos_x", marker.getPos()[0]);
-//        markerHash.put("pos_y", marker.getPos()[1]);
-//        markerMap.add(markerHash);
-//        Log.d("networkDebug", "maphash create success!");
-//        Log.d("networkDebug", String.valueOf(audioFileUri));
-//        audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri, audioFile));
-//    }
-//    List<JSONObject> jsonObj = new ArrayList<>();
-//            for(HashMap<String, Float> marker : markerMap) {
-//        JSONObject obj = new JSONObject(marker);
-//        jsonObj.add(obj);
-//    }
-//
-//            Log.d("networkDebug", "map create success!");
-//
-//
-//    JSONArray markerJsonObj = new JSONArray(jsonObj);
-//    String markerJsonString = markerJsonObj.toString();
-//            Log.d("networkDebug", markerJsonString);
-//
-//    String shareLinkString = UUID.randomUUID().toString();
-//    RequestBody shareLink = FileUploadMethods.createPartFromString(shareLinkString);
-//    RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
-//            Log.d("networkDebug", "file create success!");
-//
-//            Log.d("networkDebug", imageUri.getPath());
-//    File testFile = new File(imageUri.getPath());
-//            Log.d("networkDebug", "image path" + imageUri);
-//            assert testFile != null;
-//    MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
-//
-//
-//    fileUploadService = ServiceGenerator.createService(FileUploadService.class);
-//    Call<ResponseBody> call = fileUploadService.uploadFiles(imageFile, audioFiles, markersJSON, shareLink);
-//            call.enqueue(new Callback<ResponseBody>() {
-//        @Override
-//        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-//            try {
-//                String errorBodyString = response.body().string();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//            Log.d("networkDebug", "onResponse: errorBodyString");
-//        }
-//
-//        @Override
-//        public void onFailure(Call<ResponseBody> call, Throwable t) {
-//            Toast.makeText(curr_context, "success!" + t, Toast.LENGTH_SHORT).show();
-//        }
-//    });
+
     //Marker
     //drag and drop
     View.OnTouchListener markerListener = new View.OnTouchListener() {
@@ -662,7 +605,6 @@ public class EditImage extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "Playing Continued", Toast.LENGTH_LONG).show();
         isPlaying = true;
         playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
-
     }
 
     @Override
@@ -681,23 +623,75 @@ public class EditImage extends AppCompatActivity {
     View.OnClickListener uploadBtnOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            final ProgressButton progressButton = new ProgressButton(EditImage.this,v);
-
+            final ProgressButton progressButton = new ProgressButton(EditImage.this, v);
             progressButton.buttonActivated();
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
+            ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
+            List<HashMap<String, Float>> markerMap = new ArrayList<>();
+            for (int i = 0; i < markers.size(); ++i) {
+                Marker marker = markers.get(i);
+                File audioFile = new File(marker.getPath());
+                Uri audioFileUri = Uri.fromFile(audioFile);
+                HashMap<String, Float> markerHash = new HashMap<>();
+                markerHash.put("pos_x", marker.getPos()[0]);
+                markerHash.put("pos_y", marker.getPos()[1]);
+                markerMap.add(markerHash);
+                Log.d("networkDebug", "maphash create success!");
+                Log.d("networkDebug", String.valueOf(audioFileUri));
+                audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri, audioFile));
+            }
+            List<JSONObject> jsonObj = new ArrayList<>();
+            for (HashMap<String, Float> marker : markerMap) {
+                JSONObject obj = new JSONObject(marker);
+                jsonObj.add(obj);
+            }
+
+            Log.d("networkDebug", "map create success!");
+            JSONArray markerJsonObj = new JSONArray(jsonObj);
+            String markerJsonString = markerJsonObj.toString();
+            Log.d("networkDebug", markerJsonString);
+
+            RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
+            Log.d("networkDebug", "file create success!");
+
+            File testFile = new File(imageUri.getPath());
+
+            assert testFile != null;
+            MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
+            fileUploadService = ServiceGenerator.createService(FileUploadService.class);
+            Call<ResponseBody> call = fileUploadService.uploadFiles(imageFile, audioFiles, markersJSON);
+            call.enqueue(new Callback<ResponseBody>() {
+
                 @Override
-                public void run() {
-                    progressButton.buttonFinished();
-                    shareLink.setVisibility(View.VISIBLE);
-                    shareLinkText.setText("Copy the code &Lbu73Cd9s& and open Picca to view Image 01");
-                    copyButton.setOnClickListener(copyBtnOnClickListener);
-                    uploadView.setOnClickListener(finishBtnOnClickListener);
+                public void onResponse(Call<ResponseBody> call, @NotNull Response<ResponseBody> response) {
+                    String res  = null;
+                    try {
+                        res = response.body().string();
+                        if (res != null) {
+                            progressButton.buttonFinished();
+                            shareLinkLayout.setVisibility(View.VISIBLE);
+                            shareLinkText.setText(res);
+                            copyButton.setOnClickListener(copyBtnOnClickListener);
+                            uploadView.setOnClickListener(finishBtnOnClickListener);
+
+                        }
+                        else {
+                            Toast.makeText(curr_context, "Generate Share link failed! Try again!", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
                 }
-            }, 3000);
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    Toast.makeText(curr_context, "Upload Failed! Try again!", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     };
+
+
 
     View.OnClickListener copyBtnOnClickListener = new View.OnClickListener() {
         @Override
@@ -716,6 +710,8 @@ public class EditImage extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             //navigate to homepage
+            uploadDialog.dismiss();
+            startActivity(new Intent(getApplicationContext(),MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
         }
     };
 

@@ -4,6 +4,10 @@ android {
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
 
+    compileOptions {
+        targetCompatibility = "8"
+        sourceCompatibility = "8"
+    }
     defaultConfig {
         applicationId "com.example.aaa"
         minSdkVersion 24
@@ -38,7 +42,8 @@ dependencies {
     implementation 'com.android.support:support-v4:19.1.+'
     implementation 'com.android.support:design:28.0.0'
     implementation 'com.squareup.retrofit2:retrofit:2.8.1'
-    implementation 'com.squareup.retrofit2:converter-jackson:2.1.0'
-    implementation("com.squareup.okhttp3:okhttp:4.6.0")
+    implementation 'com.squareup.retrofit2:converter-jackson:2.8.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.6.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.6.0'
+
 }
