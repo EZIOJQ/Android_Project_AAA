@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/detail_header_bg"
         android:orientation="vertical"
-        android:padding="8dp"
+        android:padding="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -25,6 +25,7 @@
         <ImageView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:src="@drawable/drag_bar" />
 
         <LinearLayout
@@ -33,9 +34,16 @@
 
             <ImageView
                 android:id="@+id/detailHeaderType"
-                android:layout_width="30dp"
+                android:layout_width="52dp"
                 android:layout_height="match_parent"
+                android:layout_marginLeft="0"
+                android:layout_marginTop="0"
+                android:layout_marginRight="0"
+                android:layout_marginBottom="0"
                 android:layout_weight="1"
+                android:paddingLeft="0"
+                android:paddingEnd="0"
+                android:paddingBottom="0"
                 app:srcCompat="@drawable/ic_launcher_foreground" />
 
             <TextView
@@ -44,7 +52,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Audio"
-                android:textColor="@color/colorWhite" />
+                android:textColor="@color/colorWhite"
+                android:textSize="18sp" />
 
             <Button
                 android:id="@+id/detailHeaderDelete"
