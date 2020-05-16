@@ -7,7 +7,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 public class ServiceGenerator {
-    public static final String API_BASE_URL = "http://localhost:8080/storage/";
+    public static final String API_BASE_URL = "http://10.0.2.2:8080/storage/";
 
     private static HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
     private static Interceptor logging = interceptor.setLevel(HttpLoggingInterceptor.Level.BASIC);

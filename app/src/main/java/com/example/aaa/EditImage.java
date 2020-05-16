@@ -120,6 +120,7 @@ public class EditImage extends AppCompatActivity {
     private Uri imageUri;
     private FileUploadService fileUploadService;
     Context curr_context;
+    private String internet_permission = "18404";
 
 
 
@@ -253,7 +254,6 @@ public class EditImage extends AppCompatActivity {
     View.OnClickListener rightBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
-            Log.d("networkDebug", "onClick Success!");
             ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
             List<HashMap<String, Float>> markerMap = new ArrayList<>();
 
@@ -264,7 +264,7 @@ public class EditImage extends AppCompatActivity {
                 Uri audioFileUri = Uri.fromFile(audioFile);
                 HashMap<String, Float> markerHash = new HashMap<>();
                 markerHash.put("pos_x", marker.getPos()[0]);
-                markerHash.put("pos_y]", marker.getPos()[1]);
+                markerHash.put("pos_y", marker.getPos()[1]);
                 markerMap.add(markerHash);
                 Log.d("networkDebug", "maphash create success!");
                 Log.d("networkDebug", String.valueOf(audioFileUri));
@@ -288,6 +288,10 @@ public class EditImage extends AppCompatActivity {
             RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
             Log.d("networkDebug", "file create success!");
 
+            Log.d("networkDebug", imageUri.getPath());
+            File testFile = new File(imageUri.getPath());
+            Log.d("networkDebug", "image path" + imageUri);
+            assert testFile != null;
             MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
 
 
@@ -296,7 +300,12 @@ public class EditImage extends AppCompatActivity {
             call.enqueue(new Callback<ResponseBody>() {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                    Toast.makeText(curr_context, "success!" + response, Toast.LENGTH_SHORT).show();
+                    try {
+                        String errorBodyString = response.body().string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d("networkDebug", "onResponse: errorBodyString");
                 }
 
                 @Override
@@ -473,7 +482,7 @@ public class EditImage extends AppCompatActivity {
     }
 
     private boolean checkPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, recordPermission) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, recordPermission) == PackageManager.PERMISSION_GRANTED ) {
             return true;
         } else {
             ActivityCompat.requestPermissions(this, new String[]{recordPermission}, PERMISSION_CODE);
