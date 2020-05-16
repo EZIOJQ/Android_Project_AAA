@@ -3,15 +3,23 @@ package com.example.aaa;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -19,11 +27,13 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 
+import android.os.Handler;
 import android.text.method.MovementMethod;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -36,6 +46,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -108,13 +119,23 @@ public class EditImage extends AppCompatActivity {
 
     //
     private Marker currentPlayMarker;
+    private Button deleteMarkerBtn;
 
     private MediaPlayer mediaPlayer = null;
     private boolean isPlaying = false;
     private ImageButton playBtn;
     private File fileToPlay;
     private TextView durationText;
+    private SeekBar playerSeekbar;
+    private Handler seekbarHandler;
+    private Runnable updateSeekbar;
 
+    //For Upload
+    private Dialog uploadDialog;
+    private View uploadView;
+    private ConstraintLayout shareLink;
+    private TextView shareLinkText;
+    private Button copyButton;
 
     //Network related
     private Uri imageUri;
@@ -171,6 +192,33 @@ public class EditImage extends AppCompatActivity {
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
         durationText = findViewById(R.id.media_duration);
+        deleteMarkerBtn = findViewById(R.id.detail_header_delete);
+        deleteMarkerBtn.setOnClickListener(deleteMarkerOnClickListener);
+
+        playerSeekbar = findViewById(R.id.player_seekbar);
+        playerSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                pauseAudio();
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                mediaPlayer.seekTo(progress);
+                resumeAudio();
+            }
+        });
+
+
+        //
+        uploadDialog = new Dialog(this);
+
 
 
     }
@@ -200,9 +248,31 @@ public class EditImage extends AppCompatActivity {
                 bottomSheetLayout.getGlobalVisibleRect(outRect);
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
-                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                    rootView.removeView(findViewById(R.id.newMarker));
-                    markers.remove(markers.size()-1);
+                    if(isRecording) {
+                        AlertDialog.Builder alertDialog = new AlertDialog.Builder(EditImage.this);
+                        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                mediaRecorder.stop();
+                                mediaRecorder.release();
+                                mediaRecorder = null;
+                                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                                isRecording = false;
+                                recordBtn.setImageDrawable(getResources().getDrawable(R.drawable.record_botton_stop));
+                                rootView.removeView(findViewById(R.id.newMarker));
+                                markers.remove(markers.size()-1);
+                            }
+                        });
+                        alertDialog.setNegativeButton("Cancel",null);
+                        alertDialog.setTitle("Audio Still Recording");
+                        alertDialog.setMessage("Are you sure, you want to stop the recording?");
+                        alertDialog.create().show();
+                    }
+                    else {
+                        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                        rootView.removeView(findViewById(R.id.newMarker));
+                        markers.remove(markers.size()-1);
+                    }
                 }
 
             }
@@ -213,6 +283,11 @@ public class EditImage extends AppCompatActivity {
 
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    if(isPlaying) {
+                        stopAudio();
+                    }
+                    mediaPlayer.release();
+                    mediaPlayer = null;
                     detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
 
@@ -229,6 +304,19 @@ public class EditImage extends AppCompatActivity {
                 float x = lastTouchDownXY[0];
                 float y = lastTouchDownXY[1];
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+
+
+//                leftBtn.setText("Close");
+//                rightBtn.setText("Next");
+                Log.i("editImage", "x: "+x+ " y: "+y);
+
+//                View parent = (View) touchOutside.getParent();
+//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
+//                outsideparams.height = (int)(parent.getHeight() - getResources().getDimension(R.dimen.bottom_sheet_height));
+//                outsideparams.width = parent.getWidth();
+//                Log.i("outside", "onCreate: "+parent.getHeight()+" "+parent.getWidth());
+//                touchOutside.setLayoutParams(outsideparams);
+//                touchOutside.setVisibility(View.VISIBLE);
 
                 currentEditMarker = new Marker(EditImage.this);
                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(100,100);
@@ -248,100 +336,99 @@ public class EditImage extends AppCompatActivity {
     View.OnClickListener leftBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
+            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+            }
+            else {
+            }
         }
     };
 
     View.OnClickListener rightBtnOnClickListener = new View.OnClickListener(){
         @Override
         public void onClick(View v) {
-            ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
-            List<HashMap<String, Float>> markerMap = new ArrayList<>();
-
-
-            for (int i = 0; i < markers.size(); ++i){
-                Marker marker = markers.get(i);
-                File audioFile = new File(marker.getPath());
-                Uri audioFileUri = Uri.fromFile(audioFile);
-                HashMap<String, Float> markerHash = new HashMap<>();
-                markerHash.put("pos_x", marker.getPos()[0]);
-                markerHash.put("pos_y", marker.getPos()[1]);
-                markerMap.add(markerHash);
-                Log.d("networkDebug", "maphash create success!");
-                Log.d("networkDebug", String.valueOf(audioFileUri));
-                audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri, audioFile));
-            }
-            List<JSONObject> jsonObj = new ArrayList<>();
-            for(HashMap<String, Float> marker : markerMap) {
-                JSONObject obj = new JSONObject(marker);
-                jsonObj.add(obj);
-            }
-
-            Log.d("networkDebug", "map create success!");
-
-
-            JSONArray markerJsonObj = new JSONArray(jsonObj);
-            String markerJsonString = markerJsonObj.toString();
-            Log.d("networkDebug", markerJsonString);
-
-            String shareLinkString = UUID.randomUUID().toString();
-            RequestBody shareLink = FileUploadMethods.createPartFromString(shareLinkString);
-            RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
-            Log.d("networkDebug", "file create success!");
-
-            Log.d("networkDebug", imageUri.getPath());
-            File testFile = new File(imageUri.getPath());
-            Log.d("networkDebug", "image path" + imageUri);
-            assert testFile != null;
-            MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
-
-
-            fileUploadService = ServiceGenerator.createService(FileUploadService.class);
-            Call<ResponseBody> call = fileUploadService.uploadFiles(imageFile, audioFiles, markersJSON, shareLink);
-            call.enqueue(new Callback<ResponseBody>() {
-                @Override
-                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                    try {
-                        String errorBodyString = response.body().string();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED && detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                TextView textClose;
+                uploadDialog.setContentView(R.layout.upload_popup);
+                textClose = uploadDialog.findViewById(R.id.close_upload_dialog);
+                textClose.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        uploadDialog.dismiss();
                     }
-                    Log.d("networkDebug", "onResponse: errorBodyString");
-                }
-
-                @Override
-                public void onFailure(Call<ResponseBody> call, Throwable t) {
-                    Toast.makeText(curr_context, "success!" + t, Toast.LENGTH_SHORT).show();
-                }
-            });
+                });
+                uploadDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                uploadDialog.setCancelable(false);
+                uploadDialog.show();
+                uploadView = uploadDialog.findViewById(R.id.upload_progress_button);
+                shareLink = uploadDialog.findViewById(R.id.share_link);
+                shareLinkText = uploadDialog.findViewById(R.id.share_link_text);
+                copyButton = uploadDialog.findViewById(R.id.copy_button);
+                uploadView.setOnClickListener(uploadBtnOnClickListener);
+            }
+            else {
+            }
         }
     };
 
-//    View.OnClickListener outsideOnClickListener = new View.OnClickListener() {
-//        @Override
-//        public void onClick(View v) {
-//            if(bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-//                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-//                rootView.removeView(findViewById(R.id.newMarker));
-//                markers.remove(markers.size()-1);
-//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-//                outsideparams.height = 0;
-//                outsideparams.width = 0;
-//                touchOutside.setLayoutParams(outsideparams);
-//            }
-//            else if(detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-//                RelativeLayout.LayoutParams outsideparams = (RelativeLayout.LayoutParams) touchOutside.getLayoutParams();
-//                outsideparams.height = 0;
-//                outsideparams.width = 0;
-//                touchOutside.setLayoutParams(outsideparams);
-//                detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-//                Log.i("editImage", "onClick: back");
-//            }
-//            else {
+//    ArrayList<MultipartBody.Part> audioFiles = new ArrayList<>();
+//    List<HashMap<String, Float>> markerMap = new ArrayList<>();
 //
+//
+//            for (int i = 0; i < markers.size(); ++i){
+//        Marker marker = markers.get(i);
+//        File audioFile = new File(marker.getPath());
+//        Uri audioFileUri = Uri.fromFile(audioFile);
+//        HashMap<String, Float> markerHash = new HashMap<>();
+//        markerHash.put("pos_x", marker.getPos()[0]);
+//        markerHash.put("pos_y", marker.getPos()[1]);
+//        markerMap.add(markerHash);
+//        Log.d("networkDebug", "maphash create success!");
+//        Log.d("networkDebug", String.valueOf(audioFileUri));
+//        audioFiles.add(FileUploadMethods.prepareFilePart(curr_context, "audio", audioFileUri, audioFile));
+//    }
+//    List<JSONObject> jsonObj = new ArrayList<>();
+//            for(HashMap<String, Float> marker : markerMap) {
+//        JSONObject obj = new JSONObject(marker);
+//        jsonObj.add(obj);
+//    }
+//
+//            Log.d("networkDebug", "map create success!");
+//
+//
+//    JSONArray markerJsonObj = new JSONArray(jsonObj);
+//    String markerJsonString = markerJsonObj.toString();
+//            Log.d("networkDebug", markerJsonString);
+//
+//    String shareLinkString = UUID.randomUUID().toString();
+//    RequestBody shareLink = FileUploadMethods.createPartFromString(shareLinkString);
+//    RequestBody markersJSON = FileUploadMethods.createPartFromString(markerJsonString);
+//            Log.d("networkDebug", "file create success!");
+//
+//            Log.d("networkDebug", imageUri.getPath());
+//    File testFile = new File(imageUri.getPath());
+//            Log.d("networkDebug", "image path" + imageUri);
+//            assert testFile != null;
+//    MultipartBody.Part imageFile = FileUploadMethods.prepareFilePart(curr_context, "image", imageUri, new File(imageUri.getPath()));
+//
+//
+//    fileUploadService = ServiceGenerator.createService(FileUploadService.class);
+//    Call<ResponseBody> call = fileUploadService.uploadFiles(imageFile, audioFiles, markersJSON, shareLink);
+//            call.enqueue(new Callback<ResponseBody>() {
+//        @Override
+//        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+//            try {
+//                String errorBodyString = response.body().string();
+//            } catch (IOException e) {
+//                e.printStackTrace();
 //            }
+//            Log.d("networkDebug", "onResponse: errorBodyString");
 //        }
-//    };
-
+//
+//        @Override
+//        public void onFailure(Call<ResponseBody> call, Throwable t) {
+//            Toast.makeText(curr_context, "success!" + t, Toast.LENGTH_SHORT).show();
+//        }
+//    });
     //Marker
     //drag and drop
     View.OnTouchListener markerListener = new View.OnTouchListener() {
@@ -356,8 +443,6 @@ public class EditImage extends AppCompatActivity {
                 v.setX(me.getRawX() - (v.getWidth() / 2));
                 v.setY(me.getRawY() - (v.getHeight()));
                 v.setLayoutParams(params);
-                currentPlayMarker = findViewById(v.getId());
-                currentPlayMarker.setPosition(me.getRawX(),me.getRawY());
                 isMoving = true;
             }
             else if(me.getAction() == MotionEvent.ACTION_UP) {
@@ -386,12 +471,6 @@ public class EditImage extends AppCompatActivity {
                 detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 currentPlayMarker = findViewById(v.getId());
                 mediaPlayer = new MediaPlayer();
-                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-                        stopAudio();
-                    }
-                });
                 Log.i("Play_log", "playpath " + currentPlayMarker.getPath());
                 try {
                     mediaPlayer.setDataSource(currentPlayMarker.getPath());
@@ -403,6 +482,19 @@ public class EditImage extends AppCompatActivity {
                                     TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
                     );
                     durationText.setText(time);
+                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mp) {
+                            stopAudio();
+                        }
+                    });
+
+                    //seekbar
+                    playerSeekbar.setMax(duration);
+                    seekbarHandler = new Handler();
+                    updateRunnable();
+                    seekbarHandler.postDelayed(updateSeekbar, 0);
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -412,7 +504,35 @@ public class EditImage extends AppCompatActivity {
         }
     };
 
+    private void updateRunnable() {
+        updateSeekbar = new Runnable() {
+            @Override
+            public void run() {
+                if(mediaPlayer != null) {
+                    playerSeekbar.setProgress(mediaPlayer.getCurrentPosition());
+                    seekbarHandler.postDelayed(this,500);
+                }
+            }
+        };
+    }
 
+
+    View.OnClickListener deleteMarkerOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            Log.i("MarkerDelete", "Markers delete before" + markers.size());
+            rootView.removeView(currentPlayMarker);
+            for(int i = 0; i < markers.size(); i++) {
+                if(markers.get(i).getId() == currentPlayMarker.getId()) {
+                    markers.remove(i);
+                    break;
+                }
+            }
+            Log.i("MarkerDelete", "Markers delete after" + markers.size());
+
+        }
+    };
 
     //For Recording
     View.OnClickListener recordOnClickListener = new View.OnClickListener() {
@@ -458,10 +578,12 @@ public class EditImage extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void startRecording() {
 
         String recordPath = EditImage.this.getExternalFilesDir( "/").getAbsolutePath();
-        recordFile = currentEditMarker.getId() + ".3gp";
+        String timeStamp =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        recordFile = timeStamp + ".3gp";
         Log.i("filePath", "startRecording " + recordPath);
 
         mediaRecorder = new MediaRecorder();
@@ -482,7 +604,7 @@ public class EditImage extends AppCompatActivity {
     }
 
     private boolean checkPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, recordPermission) == PackageManager.PERMISSION_GRANTED ) {
+        if (ActivityCompat.checkSelfPermission(this, recordPermission) == PackageManager.PERMISSION_GRANTED) {
             return true;
         } else {
             ActivityCompat.requestPermissions(this, new String[]{recordPermission}, PERMISSION_CODE);
@@ -495,10 +617,10 @@ public class EditImage extends AppCompatActivity {
         public void onClick(View v) {
             Log.i("Play_log", "onClick: " + v.getResources().getResourceName(v.getId()));
             if(isPlaying) {
-                stopAudio();
+                pauseAudio();
             }
             else {
-                playAudio();
+                resumeAudio();
             }
         }
     };
@@ -506,19 +628,94 @@ public class EditImage extends AppCompatActivity {
 
 
     private void stopAudio() {
-        mediaPlayer.stop();
+        mediaPlayer.seekTo(0);
+        mediaPlayer.pause();
         isPlaying = false;
-        Toast.makeText(getApplicationContext(), "Recording Stopped", Toast.LENGTH_LONG).show();
+        seekbarHandler.removeCallbacks(updateSeekbar);
+        Toast.makeText(getApplicationContext(), "Playing Stopped", Toast.LENGTH_LONG).show();
         playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
     }
 
     private void playAudio() {
         mediaPlayer.start();
-        Toast.makeText(getApplicationContext(), "Recording Started Playing", Toast.LENGTH_LONG).show();
+        updateRunnable();
+        seekbarHandler.postDelayed(updateSeekbar, 0);
+        Toast.makeText(getApplicationContext(), "Playing Started", Toast.LENGTH_LONG).show();
         isPlaying = true;
         playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
 
     }
 
+    private void pauseAudio() {
+        mediaPlayer.pause();
+        isPlaying = false;
+        seekbarHandler.removeCallbacks(updateSeekbar);
+        Toast.makeText(getApplicationContext(), "Playing Paused", Toast.LENGTH_LONG).show();
+        playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
+    }
+
+    private void resumeAudio() {
+        mediaPlayer.start();
+        updateRunnable();
+        seekbarHandler.postDelayed(updateSeekbar,0);
+        Toast.makeText(getApplicationContext(), "Playing Continued", Toast.LENGTH_LONG).show();
+        isPlaying = true;
+        playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if(isPlaying) {
+            stopAudio();
+        }
+        if(isRecording) {
+            stopRecording();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
+
+    View.OnClickListener uploadBtnOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final ProgressButton progressButton = new ProgressButton(EditImage.this,v);
+
+            progressButton.buttonActivated();
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    progressButton.buttonFinished();
+                    shareLink.setVisibility(View.VISIBLE);
+                    shareLinkText.setText("Copy the code &Lbu73Cd9s& and open Picca to view Image 01");
+                    copyButton.setOnClickListener(copyBtnOnClickListener);
+                    uploadView.setOnClickListener(finishBtnOnClickListener);
+
+                }
+            }, 3000);
+        }
+    };
+
+    View.OnClickListener copyBtnOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            ClipboardManager clipboard = (ClipboardManager)
+                    getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("ShareLink",shareLinkText.getText());
+            if(clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(EditImage.this, "Share link copied to clipboard ", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+    View.OnClickListener finishBtnOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            //navigate to homepage
+        }
+    };
 
 }
