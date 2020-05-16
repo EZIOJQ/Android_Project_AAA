@@ -36,14 +36,14 @@
                 android:id="@+id/detailHeaderType"
                 android:layout_width="52dp"
                 android:layout_height="match_parent"
-                android:layout_marginLeft="0"
-                android:layout_marginTop="0"
-                android:layout_marginRight="0"
-                android:layout_marginBottom="0"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="0dp"
+                android:layout_marginRight="0dp"
+                android:layout_marginBottom="0dp"
                 android:layout_weight="1"
-                android:paddingLeft="0"
-                android:paddingEnd="0"
-                android:paddingBottom="0"
+                android:paddingLeft="0dp"
+                android:paddingEnd="0dp"
+                android:paddingBottom="0dp"
                 app:srcCompat="@drawable/ic_launcher_foreground" />
 
             <TextView
