@@ -28,32 +28,37 @@
             android:layout_marginBottom="16dp"
             android:src="@drawable/drag_bar" />
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
             <ImageView
                 android:id="@+id/detailHeaderType"
-                android:layout_width="52dp"
-                android:layout_height="match_parent"
-                android:layout_marginLeft="0dp"
-                android:layout_marginTop="0dp"
-                android:layout_marginRight="0dp"
-                android:layout_marginBottom="0dp"
+                android:layout_width="48dp"
+                android:layout_height="0dp"
                 android:layout_weight="1"
                 android:paddingLeft="0dp"
                 android:paddingEnd="0dp"
                 android:paddingBottom="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintDimensionRatio="1:1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.0"
                 app:srcCompat="@drawable/ic_launcher_foreground" />
 
             <TextView
                 android:id="@+id/detail_header_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="28dp"
                 android:layout_weight="1"
                 android:text="Audio"
                 android:textColor="@color/colorWhite"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/detailHeaderType"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <Button
                 android:id="@+id/detail_header_delete"
@@ -62,8 +67,11 @@
                 android:layout_weight="1"
                 android:background="@android:color/transparent"
                 android:text="Delete"
-                android:textColor="@color/colorPrimary" />
-        </LinearLayout>
+                android:textColor="@color/colorPrimary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
 
     </LinearLayout>
@@ -72,33 +80,35 @@
         android:id="@+id/play_button"
         android:layout_width="20dp"
         android:layout_height="21dp"
-        android:layout_marginTop="88dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.839"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/linearLayout"
-        android:background="@drawable/media_play_button"/>
-
-    <TextView
-        android:id="@+id/media_duration"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="19dp"
-        android:layout_marginTop="36dp"
-        android:layout_marginEnd="181dp"
-        android:text="TextView"
-        android:textColor="@color/colorWhite"
-        app:layout_constraintEnd_toStartOf="@+id/play_button"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/media_play_button"
+        app:layout_constraintEnd_toStartOf="@+id/player_seekbar"
+        app:layout_constraintHorizontal_bias="0.64"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
 
+<!--    <TextView-->
+<!--        android:id="@+id/media_duration"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginStart="32dp"-->
+<!--        android:layout_marginTop="20dp"-->
+<!--        android:text="TextView"-->
+<!--        android:textAlignment="textEnd"-->
+<!--        android:textColor="@color/colorWhite"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintHorizontal_bias="0.023"-->
+<!--        app:layout_constraintStart_toEndOf="@+id/player_seekbar"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />-->
+
     <SeekBar
         android:id="@+id/player_seekbar"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_width="304dp"
+        android:layout_height="20dp"
         android:layout_margin="20dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="28dp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.85"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/play_button" />
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
 </androidx.constraintlayout.widget.ConstraintLayout>
