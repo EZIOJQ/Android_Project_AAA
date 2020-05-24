@@ -375,6 +375,7 @@ public class EditImage extends AppCompatActivity {
     //Marker
     //drag and drop
     View.OnTouchListener markerListener = new View.OnTouchListener() {
+        @Override
         public boolean onTouch(View v, MotionEvent me){
             if (me.getAction() == MotionEvent.ACTION_DOWN){
                 oldXvalue = me.getRawX();
