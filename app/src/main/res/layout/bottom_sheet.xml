@@ -22,21 +22,21 @@
             app:tabIndicatorColor="#FFFFFF"
             app:tabIndicatorFullWidth="false"
             app:tabMode="scrollable"
+            android:paddingLeft="16dp"
             app:tabPadding="0dp"
-            app:tabPaddingStart="32dp"
             app:tabTextColor="#FFFFFF">
             <!--            android:background="@drawable/tab_border">-->
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start"
+                android:layout_gravity="center"
                 android:text="Audio" />
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start"
+                android:layout_gravity="center"
                 android:text="Text" />
 
         </com.google.android.material.tabs.TabLayout>

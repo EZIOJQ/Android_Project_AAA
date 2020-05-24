@@ -94,8 +94,8 @@ public class EditImage extends AppCompatActivity {
 
 
     //Main page button
-    private Button leftBtn;
-    private Button rightBtn;
+    private ImageButton leftBtn;
+    private ImageButton rightBtn;
 
     private RelativeLayout rootView;
     private Marker currentEditMarker;
@@ -160,7 +160,8 @@ public class EditImage extends AppCompatActivity {
         ImageView image_for_edit = findViewById(R.id.edit_image);
         cur_image = getIntent().getStringExtra(CameraFragment.IMAGE_TO_SEND);
         imageUri = Uri.parse(cur_image);
-        image_for_edit.setImageURI(Uri.parse(cur_image));
+        image_for_edit.setImageURI(imageUri);
+        Log.d("imageDebug", cur_image);
         curr_context = this;
 
 
@@ -181,8 +182,6 @@ public class EditImage extends AppCompatActivity {
         leftBtn.setOnClickListener(leftBtnOnClickListener);
         rightBtn.setOnClickListener(rightBtnOnClickListener);
 
-//        touchOutside.setOnClickListener(outsideOnClickListener);
-
         recordBtn = findViewById(R.id.record_btn);
         recordBtn.setBackgroundColor(Color.TRANSPARENT);
         recordBtn.setOnClickListener(recordOnClickListener);
@@ -192,7 +191,7 @@ public class EditImage extends AppCompatActivity {
         detailBottomSheetBehavior = BottomSheetBehavior.from(detailBottomSheetLayout);
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
-        durationText = findViewById(R.id.media_duration);
+//        durationText = findViewById(R.id.media_duration);
         deleteMarkerBtn = findViewById(R.id.detail_header_delete);
         deleteMarkerBtn.setOnClickListener(deleteMarkerOnClickListener);
 
@@ -425,7 +424,7 @@ public class EditImage extends AppCompatActivity {
                             TimeUnit.MILLISECONDS.toSeconds(duration) -
                                     TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
                     );
-                    durationText.setText(time);
+//                    durationText.setText(time);
                     mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(MediaPlayer mp) {
@@ -465,6 +464,9 @@ public class EditImage extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            if(isPlaying) {
+                stopAudio();
+            }
             Log.i("MarkerDelete", "Markers delete before" + markers.size());
             rootView.removeView(currentPlayMarker);
             for(int i = 0; i < markers.size(); i++) {
