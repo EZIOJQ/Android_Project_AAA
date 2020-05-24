@@ -48,20 +48,24 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:background="@drawable/bottom_close_button_style"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:padding="16dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_close_button"
                     android:textColor="@color/colorWhite"
                     app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintDimensionRatio="1:1"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.0"
-                    app:layout_constraintDimensionRatio="1:1"/>
+                    app:layout_constraintVertical_bias="0.0" />
 
                 <ImageButton
                     android:id="@+id/rightBtn"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
+                    android:scaleType="fitCenter"
+                    android:padding="16dp"
                     android:background="@drawable/bottom_next_button_style"
-                    android:src="@android:drawable/ic_media_next"
+                    android:src="@drawable/ic_done_button"
                     android:textColor="@color/colorWhite"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
