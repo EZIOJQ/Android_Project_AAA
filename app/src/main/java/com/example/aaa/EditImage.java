@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.airbnb.lottie.LottieAnimationView;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -77,6 +78,9 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class EditImage extends AppCompatActivity {
 
@@ -105,6 +109,7 @@ public class EditImage extends AppCompatActivity {
     private BottomSheetBehavior bottomSheetBehavior;
     private LinearLayout bottomSheetLayout;
     private View touchOutside;
+    private LottieAnimationView recordingAnim;
 
     private ImageButton recordBtn;
     private boolean isRecording = false;
@@ -145,6 +150,10 @@ public class EditImage extends AppCompatActivity {
     Context curr_context;
     private String internet_permission = "18404";
 
+    //Record timer
+    private TextView RecordTimer;
+    private Timer timer;
+    private int time = 0;
 
 
 
@@ -185,6 +194,10 @@ public class EditImage extends AppCompatActivity {
         recordBtn = findViewById(R.id.record_btn);
         recordBtn.setBackgroundColor(Color.TRANSPARENT);
         recordBtn.setOnClickListener(recordOnClickListener);
+        recordingAnim = findViewById(R.id.record_anim);
+        recordingAnim.setVisibility(View.GONE);
+        RecordTimer = findViewById(R.id.record_timer);
+        RecordTimer.setVisibility(View.GONE);
 
         //
         detailBottomSheetLayout = findViewById(R.id.detail_bottom_sheet);
@@ -258,6 +271,11 @@ public class EditImage extends AppCompatActivity {
                                 mediaRecorder = null;
                                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                                 isRecording = false;
+                                recordingAnim.pauseAnimation();
+                                recordingAnim.setVisibility(View.GONE);
+                                timer.cancel();
+                                timer.purge();
+                                RecordTimer.setVisibility(View.GONE);
                                 recordBtn.setImageDrawable(getResources().getDrawable(R.drawable.record_botton_stop));
                                 rootView.removeView(findViewById(R.id.newMarker));
                                 markers.remove(markers.size()-1);
@@ -503,6 +521,7 @@ public class EditImage extends AppCompatActivity {
                 }
             }
         }
+
     };
 
     private void stopRecording() {
@@ -522,6 +541,13 @@ public class EditImage extends AppCompatActivity {
         currentEditMarker.setOnTouchListener(markerListener);
         currentEditMarker.setOnClickListener(markerOnClickListener);
 
+        recordingAnim.pauseAnimation();
+        recordingAnim.setVisibility(View.GONE);
+
+        timer.cancel();
+        timer.purge();
+        RecordTimer.setVisibility(View.GONE);
+
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -538,6 +564,9 @@ public class EditImage extends AppCompatActivity {
         mediaRecorder.setOutputFile(recordPath + "/" + recordFile);
         mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
+        recordingAnim.setVisibility(View.VISIBLE);
+        recordingAnim.playAnimation();
+
         try {
             mediaRecorder.prepare();
             mediaRecorder.start();
@@ -545,8 +574,36 @@ public class EditImage extends AppCompatActivity {
             Log.d("recording", "startRecording: "+e);
         }
 
+        RecordTimer.setVisibility(View.VISIBLE);
+        startTimer();
 
 
+    }
+
+    // timer
+    public void startTimer() {
+        timer = new Timer();
+        time = 0;
+        TimerTask timerTask = new TimerTask() {
+
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        RecordTimer.setText(String.format("%d/60", time));
+                        if (time >= 0 && time <= 60 )
+                            time += 1;
+                        else if (time > 60){
+                            stopRecording();
+                            recordBtn.setImageDrawable(getResources().getDrawable(R.drawable.record_botton_stop));
+                            isRecording = false;
+                        }
+                    }
+                });
+            }
+        };
+        timer.scheduleAtFixedRate(timerTask, 0, 1000);
     }
 
     private boolean checkPermissions() {
@@ -617,8 +674,9 @@ public class EditImage extends AppCompatActivity {
         }
         if(isRecording) {
             stopRecording();
-            mediaPlayer.release();
-            mediaPlayer = null;
+            mediaRecorder = null;
+            recordBtn.setImageDrawable(getResources().getDrawable(R.drawable.record_botton_stop));
+            isRecording = false;
         }
     }
 
