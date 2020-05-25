@@ -1,5 +1,6 @@
 package com.example.aaa;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -102,11 +103,65 @@ public class ViewImage extends AppCompatActivity {
 
         detailBottomSheetLayout = findViewById(R.id.detail_bottom_sheet);
         detailBottomSheetBehavior = BottomSheetBehavior.from(detailBottomSheetLayout);
+
+        BottomSheetBehavior.BottomSheetCallback bottomSheetCallback = new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                switch (newState) {
+                    case BottomSheetBehavior.STATE_COLLAPSED:
+                        if(isPlaying) {
+                            stopAudio();
+                        }
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                        break;
+                    case BottomSheetBehavior.STATE_DRAGGING:
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        };
+
+        detailBottomSheetBehavior.addBottomSheetCallback(bottomSheetCallback);
+
+        //////////////
+
+
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
-        durationText = findViewById(R.id.media_duration);
+//        durationText = findViewById(R.id.media_duration);
         deleteMarkerBtn = findViewById(R.id.detail_header_delete);
         deleteMarkerBtn.setVisibility(View.GONE);
+
+        playerSeekbar = findViewById(R.id.player_seekbar);
+
+        playerSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                if(isPlaying) {
+                    pauseAudio();
+                }
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                mediaPlayer.seekTo(progress);
+                resumeAudio();
+            }
+        });
+
 
     }
 
@@ -198,7 +253,7 @@ public class ViewImage extends AppCompatActivity {
     private String saveAudio(byte[] inputAudio) throws IOException {
         String timeStamp =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String audioFileName = "3gp_" + timeStamp + "_";
-        File storageDir = curContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File storageDir = curContext.getExternalFilesDir(Environment.DIRECTORY_MUSIC);
         File audioFile = File.createTempFile(
                 audioFileName,
                 ".3gp",
@@ -225,11 +280,6 @@ public class ViewImage extends AppCompatActivity {
 
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
-                    if(isPlaying) {
-                        stopAudio();
-                    }
-                    mediaPlayer.release();
-                    mediaPlayer = null;
                     detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
 
@@ -246,22 +296,23 @@ public class ViewImage extends AppCompatActivity {
         public void onClick(View v) {
             Log.i("markerclick", "CLick Marker");
             if(detailBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+
                 detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 currentPlayMarker = findViewById(v.getId());
                 mediaPlayer = new MediaPlayer();
                 Log.i("Play_log", "playpath " + currentPlayMarker.getPath());
                 try {
                     //get file
+                    Log.d("filepath", currentPlayMarker.getPath());
                     mediaPlayer.setDataSource(currentPlayMarker.getPath());
 
                     mediaPlayer.prepare();
-//                    int duration = mediaPlayer.getDuration();
-//                    @SuppressLint("DefaultLocale") String time = String.format("%02d min, %02d sec",
-//                            TimeUnit.MILLISECONDS.toMinutes(duration),
-//                            TimeUnit.MILLISECONDS.toSeconds(duration) -
-//                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
-//                    );
-//                    durationText.setText(time);
+                    int duration = mediaPlayer.getDuration();
+                    @SuppressLint("DefaultLocale") String time = String.format("%02d min, %02d sec",
+                            TimeUnit.MILLISECONDS.toMinutes(duration),
+                            TimeUnit.MILLISECONDS.toSeconds(duration) -
+                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
+                    );
                     mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(MediaPlayer mp) {
@@ -269,8 +320,9 @@ public class ViewImage extends AppCompatActivity {
                         }
                     });
 
+
                     //seekbar
-//                    playerSeekbar.setMax(duration);
+                    playerSeekbar.setMax(duration);
                     seekbarHandler = new Handler();
                     updateRunnable();
                     seekbarHandler.postDelayed(updateSeekbar, 0);

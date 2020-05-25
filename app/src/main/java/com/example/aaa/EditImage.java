@@ -202,6 +202,34 @@ public class EditImage extends AppCompatActivity {
         //
         detailBottomSheetLayout = findViewById(R.id.detail_bottom_sheet);
         detailBottomSheetBehavior = BottomSheetBehavior.from(detailBottomSheetLayout);
+
+
+        BottomSheetBehavior.BottomSheetCallback bottomSheetCallback = new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                switch (newState) {
+                    case BottomSheetBehavior.STATE_COLLAPSED:
+                        if(isPlaying) {
+                            stopAudio();
+                        }
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                        break;
+                    case BottomSheetBehavior.STATE_DRAGGING:
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        };
+
+        detailBottomSheetBehavior.addBottomSheetCallback(bottomSheetCallback);
+
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
 //        durationText = findViewById(R.id.media_duration);
@@ -217,7 +245,9 @@ public class EditImage extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                pauseAudio();
+                if(isPlaying) {
+                    pauseAudio();
+                }
             }
 
             @Override
@@ -301,11 +331,6 @@ public class EditImage extends AppCompatActivity {
 
 
                 if(!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
-                    if(isPlaying) {
-                        stopAudio();
-                    }
-                    mediaPlayer.release();
-                    mediaPlayer = null;
                     detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
 
@@ -669,9 +694,7 @@ public class EditImage extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if(isPlaying) {
-            stopAudio();
-        }
+        detailBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         if(isRecording) {
             stopRecording();
             mediaRecorder = null;
