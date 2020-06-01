@@ -5,5 +5,5 @@
     <color name="colorSecondaryDark">#2e2e2e</color>
     <color name="colorAccent">#FF847A</color>
     <color name="colorWhite">#fff</color>
-    <color name="transparent">#80000000</color>
+    <color name="transparent">#1FFFFFFF</color>
 </resources>

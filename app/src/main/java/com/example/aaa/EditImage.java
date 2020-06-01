@@ -46,6 +46,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -136,6 +137,8 @@ public class EditImage extends AppCompatActivity {
     private SeekBar playerSeekbar;
     private Handler seekbarHandler;
     private Runnable updateSeekbar;
+
+    private ProgressBar progressBar;
 
     //For Upload
     private Dialog uploadDialog;
@@ -232,11 +235,12 @@ public class EditImage extends AppCompatActivity {
 
         playBtn = findViewById(R.id.play_button);
         playBtn.setOnClickListener(playOnClickListener);
-//        durationText = findViewById(R.id.media_duration);
+        durationText = findViewById(R.id.media_duration);
         deleteMarkerBtn = findViewById(R.id.detail_header_delete);
         deleteMarkerBtn.setOnClickListener(deleteMarkerOnClickListener);
 
         playerSeekbar = findViewById(R.id.player_seekbar);
+        playerSeekbar.setPadding(0,0,0,0);
         playerSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -257,7 +261,6 @@ public class EditImage extends AppCompatActivity {
                 resumeAudio();
             }
         });
-
 
         //
         uploadDialog = new Dialog(this);
@@ -462,12 +465,11 @@ public class EditImage extends AppCompatActivity {
                     mediaPlayer.setDataSource(currentPlayMarker.getPath());
                     mediaPlayer.prepare();
                     int duration = mediaPlayer.getDuration();
-                    @SuppressLint("DefaultLocale") String time = String.format("%02d min, %02d sec",
-                            TimeUnit.MILLISECONDS.toMinutes(duration),
+                    @SuppressLint("DefaultLocale") String time = String.format("%02ds",
                             TimeUnit.MILLISECONDS.toSeconds(duration) -
                                     TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))
                     );
-//                    durationText.setText(time);
+                    durationText.setText(time);
                     mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(MediaPlayer mp) {
@@ -661,7 +663,7 @@ public class EditImage extends AppCompatActivity {
         isPlaying = false;
         seekbarHandler.removeCallbacks(updateSeekbar);
         Toast.makeText(getApplicationContext(), "Playing Stopped", Toast.LENGTH_LONG).show();
-        playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
+        playBtn.setImageResource(R.drawable.media_play_button);
     }
 
     private void playAudio() {
@@ -670,7 +672,7 @@ public class EditImage extends AppCompatActivity {
         seekbarHandler.postDelayed(updateSeekbar, 0);
         Toast.makeText(getApplicationContext(), "Playing Started", Toast.LENGTH_LONG).show();
         isPlaying = true;
-        playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
+        playBtn.setImageResource(R.drawable.media_stop_button);
 
     }
 
@@ -679,7 +681,7 @@ public class EditImage extends AppCompatActivity {
         isPlaying = false;
         seekbarHandler.removeCallbacks(updateSeekbar);
         Toast.makeText(getApplicationContext(), "Playing Paused", Toast.LENGTH_LONG).show();
-        playBtn.setBackground(getResources().getDrawable(R.drawable.media_play_button));
+        playBtn.setImageResource(R.drawable.media_play_button);
     }
 
     private void resumeAudio() {
@@ -688,7 +690,7 @@ public class EditImage extends AppCompatActivity {
         seekbarHandler.postDelayed(updateSeekbar,0);
         Toast.makeText(getApplicationContext(), "Playing Continued", Toast.LENGTH_LONG).show();
         isPlaying = true;
-        playBtn.setBackground(getResources().getDrawable(R.drawable.media_stop_button));
+        playBtn.setImageResource(R.drawable.media_stop_button);
     }
 
     @Override
