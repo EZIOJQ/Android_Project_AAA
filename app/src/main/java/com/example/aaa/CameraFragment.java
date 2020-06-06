@@ -75,19 +75,6 @@ public class CameraFragment extends Fragment {
         });
         return view;
     }
-    private void setDataToDataBase() {
-        SQLiteDatabase db = databaseHandler.getWritableDatabase();
-        ContentValues cv = new ContentValues();
-        cv.put(DataBaseHandler.KEY_IMG_URL, photo);
-        cv.put(DataBaseHandler.KEY_IMG_NAME, name);
-
-        long id = db.insert(DataBaseHandler.TABLE_NAME, null, cv);
-        if (id < 0) {
-            Toast.makeText(getContext(), "Something went wrong. Please try again later...", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(getContext(), "Add successful", Toast.LENGTH_LONG).show();
-        }
-    }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override

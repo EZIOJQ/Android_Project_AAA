@@ -7,54 +7,53 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 
-public class Marker extends androidx.appcompat.widget.AppCompatImageButton implements View.OnClickListener{
-    private float[] position = new float[2];
-    private String icon;
-    private String recordFile;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
 
+
+public class Marker extends androidx.appcompat.widget.AppCompatImageButton implements View.OnClickListener{
+
+
+    private float pos_x;
+    private float pos_y;
+    private String recordFile;
 
     public Marker(Context context) {
         super(context);
-        setOnClickListener(this);
     }
 
-    public Marker(Context context, AttributeSet attrs) {
-        super(context, attrs);
+
+    public float getPos_x() {
+        return pos_x;
     }
 
-    public Marker(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
+    public float getPos_y() {
+        return pos_y;
     }
 
     public void setPosition(float x, float y) {
-        this.position = new float[] {x,y};
+        this.pos_x = x;
+        this.pos_y = y;
     }
 
-    public void setIcon(String s) {
-        this.icon = s;
-    }
 
     public void setPath(String s) {
         this.recordFile = s;
     }
 
     public float[] getPos() {
-        return this.position;
-    }
-
-    public String getIcon() {
-        return this.icon;
+        return new float[]{pos_x, pos_y};
     }
 
     public String getPath() { return this.recordFile; }
-
 
     @Override
     public void onClick(View v) {
         //setChecked(!isChecked());
         Log.d("CircleButton", "setBackground()");
     }
-
 
 
 }

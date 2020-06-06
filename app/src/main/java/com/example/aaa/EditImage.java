@@ -19,6 +19,7 @@ import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -158,6 +159,9 @@ public class EditImage extends AppCompatActivity {
     private Timer timer;
     private int time = 0;
 
+    // local database
+    private DataBaseHandler dataBaseHandler;
+
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -175,6 +179,8 @@ public class EditImage extends AppCompatActivity {
         image_for_edit.setImageURI(imageUri);
         Log.d("imageDebug", cur_image);
         curr_context = this;
+
+
 
 
         rootView = findViewById(R.id.markerList);
@@ -757,7 +763,10 @@ public class EditImage extends AppCompatActivity {
                             shareLinkText.setText(res);
                             copyButton.setOnClickListener(copyBtnOnClickListener);
                             uploadView.setOnClickListener(finishBtnOnClickListener);
-
+                            // store to local database
+                            Image image = new Image("testImage", imageUri.getPath(), res);
+                            dataBaseHandler = new DataBaseHandler(curr_context);
+                            dataBaseHandler.insertImageWithMarkers(image, markers);
                         }
                         else {
                             Toast.makeText(curr_context, "Generate Share link failed! Try again!", Toast.LENGTH_SHORT).show();

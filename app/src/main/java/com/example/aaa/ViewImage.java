@@ -10,18 +10,22 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -87,6 +91,11 @@ public class ViewImage extends AppCompatActivity {
     String currentPhotoPath;
     Bitmap imageBitmap;
 
+    //local database
+    DataBaseHandler dataBaseHandler;
+    Image image;
+
+
 
 
     @Override
@@ -98,6 +107,7 @@ public class ViewImage extends AppCompatActivity {
         String localShareLink = getIntent().getStringExtra(("localShareLink"));
         String shareLink = getIntent().getStringExtra("shareLink");
         if(shareLink != null) downloadContent(shareLink);
+        if(localShareLink != null) fetchContent(localShareLink);
 
 
 
@@ -165,6 +175,23 @@ public class ViewImage extends AppCompatActivity {
 
     }
 
+    private void fetchContent(String localShareLink){
+        dataBaseHandler = new DataBaseHandler(this);
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                // Insert Data
+                image = dataBaseHandler.getImageWithShareLink(localShareLink);
+                ImageView imageView = findViewById(R.id.view_image);
+                imageView.setImageURI(Uri.fromFile(new File(image.getImageUrl())));
+                markers = image.getMarkerListForView(curContext);
+                Log.d("databaseDebug", "run: " + image.getMarkerList().size());
+                addMarkertoList(markers);
+            }
+        });
+    }
+
+
     private void downloadContent(String shareLink) {
         FileDownService fileDownService = ServiceGenerator.createService(FileDownService.class);
         Call<ResponseBody> call = fileDownService.getContent(shareLink);
@@ -200,7 +227,21 @@ public class ViewImage extends AppCompatActivity {
                             marker.setPath(audioPath);
                             markers.add(marker);
                         }
-                        addMarkertoList();
+                        addMarkertoList(markers);
+
+                        //store to local database
+                        image = new Image("testImage", currentPhotoPath, shareLink);
+                        AsyncTask.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                // Insert Data
+                                dataBaseHandler = new DataBaseHandler(curContext);
+                                dataBaseHandler.insertImageWithMarkers(image, markers);
+                            }
+                        });
+
+
+
                     }
                 } catch (IOException | JSONException e) {
                     e.printStackTrace();
@@ -215,7 +256,7 @@ public class ViewImage extends AppCompatActivity {
         });
     }
 
-    private void addMarkertoList() {
+    private void addMarkertoList(ArrayList<Marker> markers) {
         for(Marker m : markers) {
             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(100,100);
             m.setLayoutParams(params);
@@ -228,7 +269,7 @@ public class ViewImage extends AppCompatActivity {
         }
     }
 
-    private void saveImage(Bitmap inputImage) throws IOException {
+    private String saveImage(Bitmap inputImage) throws IOException {
         String timeStamp =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = curContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
@@ -247,6 +288,7 @@ public class ViewImage extends AppCompatActivity {
             e.printStackTrace();
         }
         currentPhotoPath = photoFile.getAbsolutePath();
+        return currentPhotoPath;
     }
 
 

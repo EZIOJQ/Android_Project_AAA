@@ -1,42 +1,59 @@
 package com.example.aaa;
 
 import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
+import android.os.AsyncTask;
+import android.util.Log;
 
-public class DataBaseHandler extends SQLiteOpenHelper {
-    public Context context;
-    public static final String DATABASE_NAME = "dataManager";
+import androidx.room.Room;
 
-    public static final int DATABASE_VERSION = 3;
-    public static final String TABLE_NAME = "data";
-    public static final String KEY_ID = "id";
-    public static final String KEY_IMG_URL = "ImgFavourite";
-    public static final String KEY_IMG_NAME = "ImgName";
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
-    public DataBaseHandler(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        this.context = context;
-        //Toast.makeText(context, "Constructor called", Toast.LENGTH_LONG).show();
+public class DataBaseHandler {
+    private ImageDAO imageDAO;
+    private AppDatabase db;
+    private int oldSize;
+
+
+
+    DataBaseHandler(Context context) {
+        db = AppDatabase.getInstance(context);
+        imageDAO = db.getImageDao();
     }
 
-    public static final String CREATE_TABLE = "CREATE TABLE " + TABLE_NAME + "(" + KEY_ID +
-            " INTEGER PRIMARY KEY AUTOINCREMENT," + KEY_IMG_URL + " TEXT," + KEY_IMG_NAME + " TEXT"+ ")";
-    public static final String DROP_TABLE = "DROP TABLE IF EXISTS " + TABLE_NAME + "";
+    public void insertImageWithMarkers(Image image, List<Marker> markers){
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        db.execSQL(CREATE_TABLE);
+        String shareLink = image.getShareLink();
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                oldSize = imageDAO.getImageWithShareLink(shareLink).size();
+                Log.d("databaseDebug", "run: " + oldSize);
+            }
+        });
+        if (oldSize > 0) {
+            return;
+        }
+        List<MarkerEntity> markerEntities = new ArrayList<>();
+        for (Marker marker : markers){
+            MarkerEntity markerEntity = new MarkerEntity(marker.getPos_x(), marker.getPos_y(), marker.getPath());
+            markerEntities.add(markerEntity);
+        }
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                boolean result =  imageDAO.insertImageWithMarkerList(image, markerEntities);
+                Log.d("databaseDebug", "insert: " + result);
+            }
+        });
     }
 
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL(DROP_TABLE);
-        onCreate(db);
+    public Image getImageWithShareLink(String shareLink) {
+        return imageDAO.getImageMarkerWithShareLink(shareLink).get(0);
     }
 
-    public void deleteEntry(long row) {
-        SQLiteDatabase sqLiteDatabase = getWritableDatabase();
-        sqLiteDatabase.delete(TABLE_NAME, KEY_ID + "=" + row, null);
+    public List<Image> getAllImages(){
+        return imageDAO.getAllImagesWithMarker();
     }
 }

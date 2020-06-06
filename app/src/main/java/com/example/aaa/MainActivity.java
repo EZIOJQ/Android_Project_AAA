@@ -15,8 +15,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -32,6 +34,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -54,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     String shareLink;
     private final Context curContext = this;
     private FileDownService fileDownService;
+    private DataBaseHandler dataBaseHandler;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,14 +65,11 @@ public class MainActivity extends AppCompatActivity {
         loadFragment(new CameraFragment(), false);
         gridView = findViewById(R.id.gridView);
         swipeRefreshLayout = findViewById(R.id.swiperefresh);
-        DataBaseHandler dataBaseHandler = new DataBaseHandler(this);
-        db = dataBaseHandler.getWritableDatabase();
+        dataBaseHandler = new DataBaseHandler(this);
         setData();
         swipeRefreshLayout.setOnRefreshListener(
                 () -> refresh()
         );
-
-
     }
 
     @Override
@@ -113,6 +114,8 @@ public class MainActivity extends AppCompatActivity {
         swipeRefreshLayout.setRefreshing(false);
     }
 
+
+
     View.OnClickListener openShareLinkOnClickListener = v -> {
         if (shareLink == null) {
             Toast.makeText(this, "Share link not valid!", Toast.LENGTH_SHORT).show();
@@ -136,23 +139,18 @@ public class MainActivity extends AppCompatActivity {
         if (!images.isEmpty()){
             images.clear();
         }
-        String[] columns = {DataBaseHandler.KEY_ID, DataBaseHandler.KEY_IMG_URL, DataBaseHandler.KEY_IMG_NAME};
-        cursor = db.query(DataBaseHandler.TABLE_NAME, columns, null, null, null, null,null);
-        while(cursor.moveToNext()){
-            int index_id = cursor.getColumnIndex(DataBaseHandler.KEY_ID);
-            int index_image = cursor.getColumnIndex(DataBaseHandler.KEY_IMG_URL);
-            int index_name = cursor.getColumnIndex(DataBaseHandler.KEY_IMG_NAME);
-            uid = cursor.getInt(index_id);
-            image = cursor.getString(index_image);
-            name = cursor.getString(index_name);
-            images.add(new Image(name, image, uid));
-        }
-        if (images.size() == 0){
-            gridView.setVisibility(View.GONE);
-        } else{
-            Adapter ad = new Adapter(this, R.layout.grid_items, images);
-            gridView.setAdapter(ad);
-        }
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                images = (ArrayList<Image>) dataBaseHandler.getAllImages();
+                if (images.size() == 0){
+                    gridView.setVisibility(View.GONE);
+                } else{
+                    Adapter ad = new Adapter(curContext, R.layout.grid_items, images);
+                    gridView.setAdapter(ad);
+                }
+            }
+        });
     }
 }
 
